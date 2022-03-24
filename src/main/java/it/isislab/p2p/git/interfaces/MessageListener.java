@@ -1,4 +1,4 @@
-package it.isislab.p2p.chat;
+package it.isislab.p2p.git.interfaces;
 
 public interface MessageListener {
 

@@ -1,6 +1,10 @@
-package it.isislab.p2p.chat;
+package it.isislab.p2p.git;
 
 import org.junit.jupiter.api.*;
+
+import it.isislab.p2p.git.implementations.PublishSubscribeImpl;
+import it.isislab.p2p.git.interfaces.MessageListener;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestPublishSubscribeImpl {
