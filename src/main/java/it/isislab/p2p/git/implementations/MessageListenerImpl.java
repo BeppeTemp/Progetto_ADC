@@ -1,9 +1,6 @@
 package it.isislab.p2p.git.implementations;
 
-import org.beryx.textio.TextIO;
-import org.beryx.textio.TextIoFactory;
-import org.beryx.textio.TextTerminal;
-
+import it.isislab.p2p.git.beans.Repository;
 import it.isislab.p2p.git.interfaces.MessageListener;
 
 public class MessageListenerImpl implements MessageListener{
@@ -11,15 +8,14 @@ public class MessageListenerImpl implements MessageListener{
 
     public MessageListenerImpl(int peerid)
     {
-        this.peerid=peerid;
-
+        this.peerid = peerid;
     }
+    
     public Object parseMessage(Object obj) {
-        
-        TextIO textIO = TextIoFactory.getTextIO();
-        TextTerminal terminal = textIO.getTextTerminal();
-        terminal.printf("\n"+peerid+"] (Direct Message Received) "+obj+"\n\n");
+        Repository repository = (Repository) obj;
+
+        System.out.println("Repository " + repository.getName() + "updated. \n");
+
         return "success";
     }
-
 }

@@ -6,7 +6,6 @@ import java.util.Collections;
 
 import org.beryx.textio.TextIO;
 import org.beryx.textio.TextIoFactory;
-import org.beryx.textio.TextTerminal;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -29,96 +28,129 @@ public class Tester {
 	@Option(name = "-id", aliases = "--identifierpeer", usage = "the unique identifier for this peer", required = true)
 	private static int id;
 
+	private static void printMenu() {
+		System.out.println("Menu: ");
+		System.out.println("1 - Create Repository");
+		System.out.println("2 - Clone");
+		System.out.println("3 - Add file to a Repository");
+		System.out.println("4 - Commit");
+		System.out.println("5 - Push");
+		System.out.println("6 - Pull");
+		System.out.println("7 - UN SUBSCRIBE ON TOPIC");
+		System.out.println("8 - Exit");
+		System.out.println();
+	}
+
 	public static void main(String[] args) throws Exception {
 		final CmdLineParser parser = new CmdLineParser(new Tester());
 
 		try {
 			parser.parseArgument(args);
-
 			TextIO textIO = TextIoFactory.getTextIO();
-
-			TextTerminal terminal = textIO.getTextTerminal();
 			PublishSubscribeImpl peer = new PublishSubscribeImpl(id, master, new MessageListenerImpl(id));
 
-			terminal.printf("\nPeer: %d on Master: %s \n", id, master);
+			System.out.println("\nPeer: " + id + " on Master: " + master + " \n");
 
-			while (true) {
-				printMenu(terminal);
+			boolean flag = true;
+			String name;
+			String path;
+			File files;
 
-				int option = textIO.newIntInputReader().withMaxVal(5).withMinVal(1).read("Option");
+			while (flag) {
+				printMenu();
+				int option = textIO.newIntInputReader().withMaxVal(6).withMinVal(1).read("Option");
+
 				switch (option) {
 				case 1:
-					//TODO Debug da rimuovere
-					File file = new File("repository");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+					path = textIO.newStringInputReader().read("Directory Name:");
+					files = new File(path);
 
-					ArrayList<File> files = new ArrayList<File>();
-					Collections.addAll(files, file.listFiles());
-
-					System.out.print(files.size());
-					System.out.print(files.get(0).getName());
-					System.out.print(files.get(1).getName());
-
-					String name = textIO.newStringInputReader().withDefaultValue("default-topic").read("Repository Name:");
-					if (peer.createRepository(name, file))
-						terminal.printf("\nRepository %s Successfully Created \n", name);
+					if (peer.createRepository(name, files))
+						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
 					else
-						terminal.printf("\nError in repository creation \n");
+						System.out.println("\nError in repository creation\n");
 					break;
+
 				case 2:
-					terminal.printf("\nENTER TOPIC NAME\n");
-					String sname = textIO.newStringInputReader().withDefaultValue("default-topic").read("Name:");
-					if (peer.subscribetoTopic(sname))
-						terminal.printf("\n SUCCESSFULLY SUBSCRIBED TO %s\n", sname);
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+
+					if (peer.clone(name))
+						System.out.println("\nSuccessfully cloned \"" + name + "\"\n");
 					else
-						terminal.printf("\nERROR IN TOPIC SUBSCRIPTION\n");
+						System.out.println("\nError in clone repository\n");
 					break;
-				case 4:
-					terminal.printf("\nENTER TOPIC NAME\n");
-					String tname = textIO.newStringInputReader().withDefaultValue("default-topic").read(" Name:");
-					terminal.printf("\nENTER MESSAGE\n");
-					String message = textIO.newStringInputReader().withDefaultValue("default-message").read(" Message:");
-					if (peer.publishToTopic(tname, message))
-						terminal.printf("\n SUCCESSFULLY PUBLISH MESSAGE ON TOPIC %s\n", tname);
-					else
-						terminal.printf("\nERROR IN TOPIC PUBLISH\n");
+
+				case 3:
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+					path = textIO.newStringInputReader().read("Directory Name:");
+
+					ArrayList<File> Array_files = new ArrayList<File>();
+					File[] directory_files = new File(path).listFiles();
+
+					if (directory_files != null) {
+						Collections.addAll(Array_files, directory_files);
+
+						if (peer.addFilesToRepository(name, Array_files))
+							System.out.println("\nSuccessfully added files on repository \"" + name + "\"\n");
+						else
+							System.out.println("\nError in files publish\n");
+					} else {
+						System.out.println("\nNessun file da aggiungere trovato nella directory\n");
+					}
 
 					break;
-				case 3:
-					terminal.printf("\nENTER TOPIC NAME\n");
-					String uname = textIO.newStringInputReader().withDefaultValue("default-topic").read("Name:");
-					if (peer.unsubscribeFromTopic(uname))
-						terminal.printf("\n SUCCESSFULLY UNSUBSCRIBED TO %s\n", uname);
+
+				case 4:
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+
+					if (peer.commit(name, "bho"))
+						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
 					else
-						terminal.printf("\nERROR IN TOPIC UN SUBSCRIPTION\n");
+						System.out.println("\nError in repository creation\n");
 					break;
+
 				case 5:
-					terminal.printf("\nARE YOU SURE TO LEAVE THE NETWORK?\n");
-					boolean exit = textIO.newBooleanInputReader().withDefaultValue(false).read("exit?");
-					if (exit) {
-						peer.leaveNetwork();
-						System.exit(0);
-					}
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+
+					if (peer.push(name) != null)
+						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+					else
+						System.out.println("\nError in repository creation\n");
+					break;
+
+				case 6:
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+
+					if (peer.pull(name) != null)
+						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+					else
+						System.out.println("\nError in repository creation\n");
+					break;
+
+				case 7:
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+
+					if (peer.unsubscribeFromTopic(name))
+						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+					else
+						System.out.println("\nError in repository creation\n");
+					break;
+
+				case 8:
+					if (peer.leaveNetwork()) {
+						System.out.println("\nDisconnection completed\n");
+						flag = false;
+					} else
+						System.out.println("\nError in repository creation\n");
 					break;
 
 				default:
 					break;
 				}
 			}
-
 		} catch (CmdLineException clEx) {
 			System.err.println("ERROR: Unable to parse command-line options: " + clEx);
 		}
-
 	}
-
-	public static void printMenu(TextTerminal terminal) {
-		terminal.printf("\nMenu: \n");
-		terminal.printf("1 - Create Repository\n");
-		terminal.printf("2 - SUBSCRIBE TOPIC\n");
-		terminal.printf("3 - UN SUBSCRIBE ON TOPIC\n");
-		terminal.printf("4 - PUBLISH ON TOPIC\n");
-		terminal.printf("5 - Exit\n");
-
-	}
-
 }
