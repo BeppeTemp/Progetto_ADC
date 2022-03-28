@@ -2,41 +2,67 @@ package it.isislab.p2p.git.beans;
 
 import java.io.File;
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 
 import net.tomp2p.peers.PeerAddress;
 
 public class Repository implements Serializable {
     private String name;
-    private ArrayList<File> files;
     private HashSet<PeerAddress> users;
-    private boolean modified;
+    private ArrayList<Item> items;
+    private ArrayList<Commit> commits;
 
-    // Costruttore
-    public Repository(String name, File directory, HashSet<PeerAddress> users) {
+    private static Md5_gen gen = new Md5_gen();
+
+    // Costruttori
+    public Repository(String name, HashSet<PeerAddress> users, File directory) throws Exception {
         this.name = name;
-        this.files = new ArrayList<File>();
-        Collections.addAll(this.files, directory.listFiles());
         this.users = users;
-        this.modified = false;
+
+        this.items = new ArrayList<Item>();
+        this.commits = new ArrayList<Commit>();
+
+        File[] files = directory.listFiles();
+        for (File file : files)
+            this.items.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+
     }
 
-    // Metodo per l'aggiunta di file alla repository
-    public void add_Files(ArrayList<File> new_files) {
-        for (File file : new_files) {
-            if (!this.contains_File(file))
-                this.files.add(file);
+    // Aggiunge file alla repository
+    public void add_Files(File[] files) throws Exception {
+        Integer i;
+
+        for (File file : files) {
+            i = contains(file);
+            System.out.println(file.getName());
+            System.out.println(i);
+            if (i == -1) {
+                System.out.println("Aggiunto: " + file.getName());
+                this.items.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+            }
         }
-        this.modified = true;
     }
 
-    // Controlla se il file è già presente nella repository
-    public boolean contains_File(File file_to_check) {
-        for (File file : this.files) {
-            if(file_to_check.getName().compareTo(file.getName()) == 0)
+    // Verifica se un file è già contenuto nella repository
+    public Integer contains(File file) throws Exception {
+        String checksum = gen.md5_Of_File(file);
+        for (Integer i = 0; i < this.items.size(); i++) {
+            if (this.items.get(i).getChecksum().compareTo(checksum) == 0 && this.items.get(i).getName().compareTo(file.getName()) == 0) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // Verifica se un file è stato modificato
+    public boolean isModified(File file) throws Exception {
+        String checksum = gen.md5_Of_File(file);
+        for (Item item : this.items) {
+            if (file.getName().compareTo(item.getName()) == 0 && item.getChecksum().compareTo(checksum) != 0) {
                 return true;
+            }
         }
         return false;
     }
@@ -50,14 +76,6 @@ public class Repository implements Serializable {
         this.name = name;
     }
 
-    public ArrayList<File> getFiles() {
-        return this.files;
-    }
-
-    public void setFiles(ArrayList<File> files) {
-        this.files = files;
-    }
-
     public HashSet<PeerAddress> getUsers() {
         return this.users;
     }
@@ -66,15 +84,11 @@ public class Repository implements Serializable {
         this.users = users;
     }
 
-    public boolean isModified() {
-        return this.modified;
+    public ArrayList<Item> getItems() {
+        return this.items;
     }
 
-    public boolean getModified() {
-        return this.modified;
-    }
-
-    public void setModified(boolean modified) {
-        this.modified = modified;
+    public void setItems(ArrayList<Item> items) {
+        this.items = items;
     }
 }

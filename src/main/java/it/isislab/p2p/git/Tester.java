@@ -1,8 +1,6 @@
 package it.isislab.p2p.git;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
 
 import org.beryx.textio.TextIO;
 import org.beryx.textio.TextIoFactory;
@@ -66,10 +64,13 @@ public class Tester {
 					path = textIO.newStringInputReader().read("Directory Name:");
 					files = new File(path);
 
-					if (peer.createRepository(name, files))
-						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+					if (files.listFiles() != null)
+						if (peer.createRepository(name, files))
+							System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+						else
+							System.out.println("\nError in repository creation\n");
 					else
-						System.out.println("\nError in repository creation\n");
+						System.out.println("\nInvalid path\n");
 					break;
 
 				case 2:
@@ -85,13 +86,10 @@ public class Tester {
 					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
 					path = textIO.newStringInputReader().read("Directory Name:");
 
-					ArrayList<File> Array_files = new ArrayList<File>();
 					File[] directory_files = new File(path).listFiles();
 
 					if (directory_files != null) {
-						Collections.addAll(Array_files, directory_files);
-
-						if (peer.addFilesToRepository(name, Array_files))
+						if (peer.addFilesToRepository(name, directory_files))
 							System.out.println("\nSuccessfully added files on repository \"" + name + "\"\n");
 						else
 							System.out.println("\nError in files publish\n");
@@ -103,8 +101,9 @@ public class Tester {
 
 				case 4:
 					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+					String message = textIO.newStringInputReader().withDefaultValue("I changed something").read("Message:");
 
-					if (peer.commit(name, "bho"))
+					if (peer.commit(name, message))
 						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
 					else
 						System.out.println("\nError in repository creation\n");

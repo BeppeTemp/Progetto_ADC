@@ -1,0 +1,4 @@
+Create repository: Crea un topic e ci inserisce dei file.
+Add files: inserisce dei file oltre a quelli messi alla creazione.
+
+Clone: scarica i file e ti sottoscrive al topic.

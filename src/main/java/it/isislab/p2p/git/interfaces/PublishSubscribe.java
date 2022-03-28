@@ -1,7 +1,6 @@
 package it.isislab.p2p.git.interfaces;
 
 import java.io.File;
-import java.util.ArrayList;
 
 public interface PublishSubscribe {
 
@@ -27,7 +26,7 @@ public interface PublishSubscribe {
 	 * @param files a list of Files to be added to the repository.
 	 * @return true if it is correctly added, false otherwise.
 	 */
-	public boolean addFilesToRepository(String _repo_name, ArrayList<File> files);
+	public boolean addFilesToRepository(String _repo_name, File[] files);
 	
 	/**
 	 * Apply the changing to the files in the local repository.
