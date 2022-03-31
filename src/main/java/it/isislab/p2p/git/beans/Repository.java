@@ -16,7 +16,7 @@ public class Repository implements Serializable {
 
     private static Md5_gen gen = new Md5_gen();
 
-    // Costruttori
+    // Costruttore
     public Repository(String name, HashSet<PeerAddress> users, File directory) throws Exception {
         this.name = name;
         this.users = users;
@@ -29,45 +29,31 @@ public class Repository implements Serializable {
             this.items.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 
     }
-
-    // Aggiunge file alla repository
-    public void add_Files(File[] files) throws Exception {
-        Integer i;
-
-        for (File file : files) {
-            i = contains(file);
-            System.out.println(file.getName());
-            System.out.println(i);
-            if (i == -1) {
-                System.out.println("Aggiunto: " + file.getName());
-                this.items.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
-            }
-        }
-    }
-
-    // Aggiorna la repository in base ai commit
-    public void update_Files(Commit commit) {
+    
+    // Aggiorna la repository in base a un commit
+    public void commit(Commit commit) {
         this.commits.add(commit);
         for (Item modified : commit.getModified()) {
-            for (Item item : this.items) {
-                if (item.getName().compareTo(modified.getName()) == 0) {
-                    item = modified;
+            for (int i = 0; i < this.items.size(); i++) {
+                if (this.items.get(i).getName().compareTo(modified.getName()) == 0) {
+                    this.items.get(i).setBytes(modified.getBytes());
+                    this.items.get(i).setChecksum(modified.getChecksum());
                 }
             }
         }
     }
-
-    // Verifica se un file è già contenuto nella repository
-    public Integer contains(File file) throws Exception {
+    
+    // Verifica se un file è già contenuto nella repository e ne ritorna la posizione
+    public int contains(File file) throws Exception {
         String checksum = gen.md5_Of_File(file);
-        for (Integer i = 0; i < this.items.size(); i++) {
+        for (int i = 0; i < this.items.size(); i++) {
             if (this.items.get(i).getChecksum().compareTo(checksum) == 0 && this.items.get(i).getName().compareTo(file.getName()) == 0) {
                 return i;
             }
         }
         return -1;
     }
-
+    
     // Verifica se un file è stato modificato
     public boolean isModified(File file) throws Exception {
         String checksum = gen.md5_Of_File(file);
@@ -79,6 +65,11 @@ public class Repository implements Serializable {
         return false;
     }
 
+    // Aggiunge un item alla repository
+    public void add_Item(Item item) {
+        this.items.add(item);
+    }
+    
     // Getter & Setter
     public String getName() {
         return this.name;
@@ -103,4 +94,13 @@ public class Repository implements Serializable {
     public void setItems(ArrayList<Item> items) {
         this.items = items;
     }
+
+    public ArrayList<Commit> getCommits() {
+        return this.commits;
+    }
+
+    public void setCommits(ArrayList<Commit> commits) {
+        this.commits = commits;
+    }
+
 }

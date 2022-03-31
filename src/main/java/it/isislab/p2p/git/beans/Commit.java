@@ -1,8 +1,9 @@
 package it.isislab.p2p.git.beans;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Commit {
+public class Commit implements Serializable{
     private String message;
     private ArrayList<Item> modified;
 

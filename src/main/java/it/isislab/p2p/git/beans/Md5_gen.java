@@ -6,7 +6,7 @@ import java.io.FileInputStream;
 import java.security.MessageDigest;
 
 public class Md5_gen {
-
+    //TODO Da vedere se si può usare qualche alternativa
     public Md5_gen() { }
 
     // Calcola la checksum di un file

@@ -14,7 +14,7 @@ public class Item implements Serializable{
         this.checksum = checksum;
     }
 
-
+    // Getter & Setter
     public String getName() {
         return this.name;
     }
@@ -38,5 +38,4 @@ public class Item implements Serializable{
     public void setBytes(byte[] bytes) {
         this.bytes = bytes;
     }
-
 }

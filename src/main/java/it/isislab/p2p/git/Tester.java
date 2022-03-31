@@ -28,14 +28,14 @@ public class Tester {
 
 	private static void printMenu() {
 		System.out.println("Menu: ");
-		System.out.println("1 - Create Repository");
-		System.out.println("2 - Clone");
-		System.out.println("3 - Add file to a Repository");
+		System.out.println("1 - Crea una Repository");
+		System.out.println("2 - Clona una Repository");
+		System.out.println("3 - Aggiungi file a una repository");
 		System.out.println("4 - Commit");
 		System.out.println("5 - Push");
 		System.out.println("6 - Pull");
 		System.out.println("7 - UN SUBSCRIBE ON TOPIC");
-		System.out.println("8 - Exit");
+		System.out.println("8 - Esci");
 		System.out.println();
 	}
 
@@ -60,71 +60,63 @@ public class Tester {
 
 				switch (option) {
 				case 1:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
-					path = textIO.newStringInputReader().read("Directory Name:");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					path = textIO.newStringInputReader().read("Directory dei file:");
 					files = new File(path);
 
 					if (files.listFiles() != null)
 						if (peer.createRepository(name, files))
-							System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+							System.out.println("\nRepository \"" + name + "\" creata con successo ✅\n");
 						else
-							System.out.println("\nError in repository creation\n");
+							System.out.println("\nErrore nella creazione della repository ❌\n");
 					else
-						System.out.println("\nInvalid path\n");
+						System.out.println("\nDirectory inserita non valida ❌\n");
 					break;
 
 				case 2:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
 
 					if (peer.clone(name))
-						System.out.println("\nSuccessfully cloned \"" + name + "\"\n");
+						System.out.println("\nRepository clonata correttamente \"" + name + "\" ✅\n");
 					else
-						System.out.println("\nError in clone repository\n");
+						System.out.println("\nErrore nel clonare la repository ❌\n");
 					break;
 
 				case 3:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
 					path = textIO.newStringInputReader().read("Directory Name:");
 
 					File[] directory_files = new File(path).listFiles();
 
 					if (directory_files != null) {
 						if (peer.addFilesToRepository(name, directory_files))
-							System.out.println("\nSuccessfully added files on repository \"" + name + "\"\n");
+							System.out.println("\nFile correttamente aggiunti alla repository ✅\"" + name + "\"\n");
 						else
-							System.out.println("\nError in files publish\n");
+							System.out.println("\nErrore nell'aggiunta dei file ❌\n");
 					} else {
-						System.out.println("\nNessun file da aggiungere trovato nella directory\n");
+						System.out.println("\nNessun file da aggiungere trovato nella directory ❌\n");
 					}
 
 					break;
 
 				case 4:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
-					String message = textIO.newStringInputReader().withDefaultValue("I changed something").read("Message:");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷‍♂️").read("Messaggio:");
 
 					if (peer.commit(name, message))
-						System.out.println("\nCommit \"" + name + "\" Successfully Created\n");
+						System.out.println("\nCommit \"" + name + "\" creato correttamente ✅\n");
 					else
-						System.out.println("\nNothing to commit\n");
+						System.out.println("\nNessuna modifica trovata ❌\n");
 					break;
 
 				case 5:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
-
-					if (peer.push(name) != null)
-						System.out.println("\nPush on repo \"" + name + "\" done\n");
-					else
-						System.out.println("\nError in push operation\n");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					System.out.println(peer.push(name));
 					break;
 
 				case 6:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
-
-					if (peer.pull(name) != null)
-						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
-					else
-						System.out.println("\nError in repository creation\n");
+					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					System.out.println(peer.pull(name));
 					break;
 
 				case 7:
