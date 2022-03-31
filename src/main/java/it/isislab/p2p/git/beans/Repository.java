@@ -45,6 +45,18 @@ public class Repository implements Serializable {
         }
     }
 
+    // Aggiorna la repository in base ai commit
+    public void update_Files(Commit commit) {
+        this.commits.add(commit);
+        for (Item modified : commit.getModified()) {
+            for (Item item : this.items) {
+                if (item.getName().compareTo(modified.getName()) == 0) {
+                    item = modified;
+                }
+            }
+        }
+    }
+
     // Verifica se un file è già contenuto nella repository
     public Integer contains(File file) throws Exception {
         String checksum = gen.md5_Of_File(file);

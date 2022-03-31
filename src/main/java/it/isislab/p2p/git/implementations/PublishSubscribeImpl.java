@@ -231,8 +231,29 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	}
 
 	public String push(String repo_name) {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO Check su pull
+
+		try {
+			// Recupero dalla DHT la repository
+			FutureGet futureGet = this.retrieve_Repository(repo_name);
+
+			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
+				// Recupero la repository dalla DHT
+				Repository repository = (Repository) futureGet.dataMap().values().iterator().next().object();
+
+				// Aggiorna la repository con i commit
+				for (Commit commit : this.commits) {
+					repository.update_Files(commit);
+				}
+
+				// Reiserisce la repository
+				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
+			}
+			return "OK";
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return "Errore";
 	}
 
 	public String pull(String repo_name) {
@@ -261,11 +282,12 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 				for (File file : local_files) {
 					if (remote_repo.isModified(file)) {
 						System.out.println("Conflitto trovato sul file: " + file.getName());
-						file.renameTo(new File(repo_name + "/local_" + file.getName()));
-						File dest = new File(repo_name + "/" + file.getName());
-						// File di remoto 
-						FileUtils.writeByteArrayToFile(dest, remnot());
-						// modified.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+						// file.renameTo(new File(repo_name + "/local_" + file.getName()));
+						// File dest = new File(repo_name + "/" + file.getName());
+						// File di remoto
+						// FileUtils.writeByteArrayToFile(dest, remnot());
+						// modified.add(new Item(file.getName(), gen.md5_Of_File(file),
+						// Files.readAllBytes(file.toPath())));
 
 					}
 				}
