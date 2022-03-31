@@ -113,9 +113,9 @@ public class Tester {
 					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
 
 					if (peer.push(name) != null)
-						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+						System.out.println("\nPush on repo \"" + name + "\" done\n");
 					else
-						System.out.println("\nError in repository creation\n");
+						System.out.println("\nError in push operation\n");
 					break;
 
 				case 6:

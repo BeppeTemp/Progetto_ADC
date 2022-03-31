@@ -243,11 +243,12 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 
 				// Aggiorna la repository con i commit
 				for (Commit commit : this.commits) {
+					System.out.println(commit.getMessage());
 					repository.update_Files(commit);
 				}
 
 				// Reiserisce la repository
-				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
+				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
 			}
 			return "OK";
 		} catch (Exception e) {
