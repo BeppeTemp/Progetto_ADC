@@ -104,9 +104,9 @@ public class Tester {
 					String message = textIO.newStringInputReader().withDefaultValue("I changed something").read("Message:");
 
 					if (peer.commit(name, message))
-						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+						System.out.println("\nCommit \"" + name + "\" Successfully Created\n");
 					else
-						System.out.println("\nError in repository creation\n");
+						System.out.println("\nNothing to commit\n");
 					break;
 
 				case 5:
