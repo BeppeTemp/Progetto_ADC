@@ -239,21 +239,20 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	@Override
 	public String push(String repo_name) {
 		// TODO Check su pull
+		this.pull(repo_name);
 
 		try {
 			FutureGet futureGet = this.retrieve_Repository(repo_name);
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-				Repository repository = (Repository) futureGet.dataMap().values().iterator().next().object();
-
 				// Aggiorna la repository con i commit
 				for (Commit commit : this.commits) {
-					System.out.println("Commit #" + repository.getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
-					repository.commit(commit);
+					System.out.println("Commit #" + this.local_repo.getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
+					this.local_repo.commit(commit);
 				}
 				this.commits = new ArrayList<Commit>();
 
-				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
+				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
 				return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
 			}
 		} catch (Exception e) {
@@ -273,19 +272,31 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 		// conflitto
 		// Risolvo conflitto e pusho tutto sovrascrivendo
 
+		Repository remote_repo;
+
 		try {
 			FutureGet futureGet = this.retrieve_Repository(repo_name);
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
 				// Recupero la repository dalla DHT
-				this.local_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
-				// Scarico i file dalla DHT
-				for (Item file : this.local_repo.getItems()) {
-					File dest = new File(repo_name + "/" + file.getName());
-					FileUtils.writeByteArrayToFile(dest, file.getBytes());
-					// TODO implementare i conflitti
+				File local_dir = new File(repo_name + "/");
+				File[] local_files = local_dir.listFiles();
+
+				for (File file : local_files) {
+					if (remote_repo.isDifferent(file)) {
+						System.out.println("conflitto su: " + file.getName());
+					}
 				}
+
+
+				// // Scarico i file dalla DHT
+				// for (Item file : this.local_repo.getItems()) {
+				// 	File dest = new File(repo_name + "/" + file.getName());
+				// 	FileUtils.writeByteArrayToFile(dest, file.getBytes());
+				// 	// TODO implementare i conflitti
+				// }
 
 				// TODO Mostrare i cambiamenti
 			}

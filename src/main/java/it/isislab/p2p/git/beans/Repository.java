@@ -45,6 +45,16 @@ public class Repository implements Serializable {
             this.items.add(added);
         }
     }
+
+    public boolean isDifferent(File file) throws Exception {
+        int i = this.contains(file);
+        if (i != -1) {
+            if (gen.md5_Of_File(file).compareTo(this.items.get(i).getChecksum()) != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     // Verifica se un file è già contenuto nella repository e ne ritorna la posizione
     public int contains(File file) throws Exception {
