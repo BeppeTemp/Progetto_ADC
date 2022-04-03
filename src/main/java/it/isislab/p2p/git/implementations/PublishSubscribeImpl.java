@@ -241,7 +241,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 				for (Commit commit : this.commits) {
 					System.out.println("Commit #" + repository.getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
 					repository.commit(commit);
-					this.commits.remove(commit);
+					//TODO svuotare la lista
 				}
 
 				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
