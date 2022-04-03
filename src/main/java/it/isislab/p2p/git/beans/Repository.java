@@ -41,6 +41,9 @@ public class Repository implements Serializable {
                 }
             }
         }
+        for (Item added : commit.getAdded()) {
+            this.items.add(added);
+        }
     }
     
     // Verifica se un file è già contenuto nella repository e ne ritorna la posizione

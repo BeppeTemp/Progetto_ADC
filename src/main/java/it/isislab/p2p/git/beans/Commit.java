@@ -6,11 +6,13 @@ import java.util.ArrayList;
 public class Commit implements Serializable{
     private String message;
     private ArrayList<Item> modified;
+    private ArrayList<Item> added;
 
     // Costruttore
-    public Commit(String message, ArrayList<Item> modified) {
+    public Commit(String message, ArrayList<Item> modified, ArrayList<Item> added) {
         this.message = message;
         this.modified = modified;
+        this.added = added;
     }
 
     // Getter & Setter
@@ -29,4 +31,13 @@ public class Commit implements Serializable{
     public void setModified(ArrayList<Item> modified) {
         this.modified = modified;
     }
+
+    public ArrayList<Item> getAdded() {
+        return this.added;
+    }
+
+    public void setAdded(ArrayList<Item> added) {
+        this.added = added;
+    }
+
 }
