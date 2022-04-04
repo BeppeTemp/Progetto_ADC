@@ -44,6 +44,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	// Costruttore
 	public PublishSubscribeImpl(int _id, String _master_peer, final MessageListener _listener) throws Exception {
 		this.commits = new ArrayList<Commit>();
+		this.added = new ArrayList<Item>();
 
 		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
 		dht = new PeerBuilderDHT(peer).start();
@@ -220,7 +221,6 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 					modified.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 			}
 
-			System.out.println(this.added.size());
 			if (modified.size() == 0 && this.added.size() == 0)
 				return false;
 			else
@@ -289,7 +289,6 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 						System.out.println("conflitto su: " + file.getName());
 					}
 				}
-
 
 				// // Scarico i file dalla DHT
 				// for (Item file : this.local_repo.getItems()) {

@@ -48,6 +48,8 @@ public class Repository implements Serializable {
 
     public boolean isDifferent(File file) throws Exception {
         int i = this.contains(file);
+        System.out.println("Indice: " + i);
+        System.out.println("File: " + this.items.get(i).getName());
         if (i != -1) {
             if (gen.md5_Of_File(file).compareTo(this.items.get(i).getChecksum()) != 0) {
                 return true;
