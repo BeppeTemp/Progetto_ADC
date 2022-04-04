@@ -44,6 +44,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	// Costruttore
 	public PublishSubscribeImpl(int _id, String _master_peer, final MessageListener _listener) throws Exception {
 		this.commits = new ArrayList<Commit>();
+		this.added = new ArrayList<Item>();
 
 		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
 		dht = new PeerBuilderDHT(peer).start();
