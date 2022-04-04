@@ -281,10 +281,14 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 					for (File file : local_files) {
 						i = remote_repo.isDifferent(file);
 						if (i != -1) {
-							remote_repo.getItems().get(i).setName("REMOTE-" + remote_repo.getItems().get(i).getName());
-							remote_repo.add_Item(new Item("LOCAL-" + file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+							File remote_dest = new File(repo_name + "/REMOTE-" + file.getName());
+							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(i).getBytes());
+
+							File local_dest = new File(repo_name + "/LOCAL-" + file.getName());
+							file.renameTo(local_dest);
 	
 							System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
+							System.out.println("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
 						}
 					}
 	
