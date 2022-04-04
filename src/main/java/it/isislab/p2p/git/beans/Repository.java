@@ -29,7 +29,7 @@ public class Repository implements Serializable {
             this.items.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 
     }
-    
+
     // Aggiorna la repository in base a un commit
     public void commit(Commit commit) {
         this.commits.add(commit);
@@ -46,16 +46,18 @@ public class Repository implements Serializable {
         }
     }
 
-    public boolean isDifferent(File file) throws Exception {
+    // Verifica se se un file dato ha un contenuto diverso
+    public Integer isDifferent(File file) throws Exception {
         for (int i = 0; i < this.items.size(); i++) {
             if (file.getName().compareTo(this.items.get(i).getName()) == 0 && gen.md5_Of_File(file).compareTo(this.items.get(i).getChecksum()) != 0) {
-                return true;
+                return i;
             }
         }
-        return false;
+        return -1;
     }
-    
-    // Verifica se un file è già contenuto nella repository e ne ritorna la posizione
+
+    // Verifica se un file è già contenuto nella repository e ne ritorna la
+    // posizione
     public int contains(File file) throws Exception {
         String checksum = gen.md5_Of_File(file);
         for (int i = 0; i < this.items.size(); i++) {
@@ -65,7 +67,7 @@ public class Repository implements Serializable {
         }
         return -1;
     }
-    
+
     // Verifica se un file è stato modificato
     public boolean isModified(File file) throws Exception {
         String checksum = gen.md5_Of_File(file);
@@ -81,7 +83,7 @@ public class Repository implements Serializable {
     public void add_Item(Item item) {
         this.items.add(item);
     }
-    
+
     // Getter & Setter
     public String getName() {
         return this.name;
