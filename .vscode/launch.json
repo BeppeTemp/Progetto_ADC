@@ -9,7 +9,7 @@
             "name": "Peer_One",
             "request": "launch",
             "mainClass": "it.isislab.p2p.git.Tester",
-            "args": "-m 192.168.0.230 -id 0",
+            "args": "-m 127.0.0.1 -id 0",
         },
         {
             "type": "java",

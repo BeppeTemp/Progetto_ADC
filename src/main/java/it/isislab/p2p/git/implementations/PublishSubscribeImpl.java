@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 import org.apache.commons.io.FileUtils;
+import org.beryx.textio.TextIO;
+import org.beryx.textio.TextIoFactory;
 
 import it.isislab.p2p.git.beans.Commit;
 import it.isislab.p2p.git.beans.Item;
@@ -35,6 +37,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	private ArrayList<Commit> commits;
 	private ArrayList<Item> added;
 
+	private boolean state;
 
 	private Repository local_repo;
 	private static Md5_gen gen = new Md5_gen();
@@ -57,7 +60,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 		} else {
 			throw new Exception("Error in master peer bootstrap.");
 		}
-
+		
 		peer.objectDataReply(new ObjectDataReply() {
 			public Object reply(PeerAddress sender, Object request) throws Exception {
 				return _listener.parseMessage(request);
@@ -252,6 +255,15 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 				}
 				this.commits = new ArrayList<Commit>();
 
+				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				for (PeerAddress peerAddress : remote_repo.getUsers()) {
+                    //Mando il messaggio agli altri peer e non a me stesso
+                    // if (!peerAddress.equals(dht.peer().peerAddress())) {
+                        FutureDirect futureDirect = dht.peer().sendDirect(peerAddress).object(this.local_repo).start();
+                        futureDirect.awaitUninterruptibly();
+                    // }
+                }
+
 				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
 				return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
 			}
@@ -263,8 +275,6 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 
 	@Override
 	public String pull(String repo_name) {
-		// Quando facendo il pull viene modifcato un file modificato in locale
-
 		try {
 			FutureGet futureGet = this.retrieve_Repository(repo_name);
 
@@ -288,7 +298,10 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 							file.renameTo(local_dest);
 	
 							System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
-							System.out.println("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
+
+							TextIO textIO = TextIoFactory.getTextIO();
+							while(local_files.length != local_dir.listFiles().length)
+								textIO.newCharInputReader().read("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
 						}
 					}
 	
