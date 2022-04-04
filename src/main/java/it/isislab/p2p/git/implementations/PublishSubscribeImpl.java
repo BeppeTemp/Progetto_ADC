@@ -264,7 +264,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	@Override
 	public String pull(String repo_name) {
 		// Quando facendo il pull viene modifcato un file modificato in locale
-		
+
 		try {
 			FutureGet futureGet = this.retrieve_Repository(repo_name);
 
@@ -272,21 +272,24 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 				// Recupero la repository dalla DHT
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
-				File local_dir = new File(repo_name + "/");
-				File[] local_files = local_dir.listFiles();
-
-				int i;
-				for (File file : local_files) {
-					i = remote_repo.isDifferent(file);
-					if (i != -1) {
-						remote_repo.getItems().get(i).setName("REMOTE-" + remote_repo.getItems().get(i).getName());
-						remote_repo.add_Item(new Item("LOCAL-" + file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
-
-						System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
+				// Se lo stato della repository è cambiata dal mio ultimo pull
+				if (remote_repo.getState() > local_repo.getState()) {
+					File local_dir = new File(repo_name + "/");
+					File[] local_files = local_dir.listFiles();
+	
+					int i;
+					for (File file : local_files) {
+						i = remote_repo.isDifferent(file);
+						if (i != -1) {
+							remote_repo.getItems().get(i).setName("REMOTE-" + remote_repo.getItems().get(i).getName());
+							remote_repo.add_Item(new Item("LOCAL-" + file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+	
+							System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
+						}
 					}
+	
+					this.local_repo = remote_repo;
 				}
-
-				this.local_repo = remote_repo;
 			}
 			return "\nPull della repository \"" + repo_name + "\" completato ✅\n";
 		} catch (Exception e) {

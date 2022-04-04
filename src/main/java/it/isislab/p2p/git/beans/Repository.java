@@ -10,6 +10,7 @@ import net.tomp2p.peers.PeerAddress;
 
 public class Repository implements Serializable {
     private String name;
+    private int state;
     private HashSet<PeerAddress> users;
     private ArrayList<Item> items;
     private ArrayList<Commit> commits;
@@ -24,6 +25,8 @@ public class Repository implements Serializable {
         this.items = new ArrayList<Item>();
         this.commits = new ArrayList<Commit>();
 
+        this.state = this.commits.size();
+
         File[] files = directory.listFiles();
         for (File file : files)
             this.items.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
@@ -32,7 +35,6 @@ public class Repository implements Serializable {
 
     // Aggiorna la repository in base a un commit
     public void commit(Commit commit) {
-        this.commits.add(commit);
         for (Item modified : commit.getModified()) {
             for (int i = 0; i < this.items.size(); i++) {
                 if (this.items.get(i).getName().compareTo(modified.getName()) == 0) {
@@ -44,6 +46,8 @@ public class Repository implements Serializable {
         for (Item added : commit.getAdded()) {
             this.items.add(added);
         }
+        this.commits.add(commit);
+        this.state = this.commits.size();
     }
 
     // Verifica se se un file dato ha un contenuto diverso
@@ -93,6 +97,14 @@ public class Repository implements Serializable {
         this.name = name;
     }
 
+    public int getState() {
+        return this.state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
+    }
+
     public HashSet<PeerAddress> getUsers() {
         return this.users;
     }
@@ -116,5 +128,4 @@ public class Repository implements Serializable {
     public void setCommits(ArrayList<Commit> commits) {
         this.commits = commits;
     }
-
 }
