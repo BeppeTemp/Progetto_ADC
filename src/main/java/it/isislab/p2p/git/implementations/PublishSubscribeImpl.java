@@ -264,40 +264,29 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	@Override
 	public String pull(String repo_name) {
 		// Quando facendo il pull viene modifcato un file modificato in locale
-
-		// Parto dall'ultima aggiornata
-		// Faccio le modifiche le comparo con l'ultima aggiornata per creare il commit
-		// faccio il pull quindi comparo ultima aggiornata con quella in remote
-		// Se nelle differenze c'è qualche modidica che è anche nel commit allora
-		// conflitto
-		// Risolvo conflitto e pusho tutto sovrascrivendo
-
-		Repository remote_repo;
-
+		
 		try {
 			FutureGet futureGet = this.retrieve_Repository(repo_name);
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
 				// Recupero la repository dalla DHT
-				remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
 				File local_dir = new File(repo_name + "/");
 				File[] local_files = local_dir.listFiles();
 
+				int i;
 				for (File file : local_files) {
-					if (remote_repo.isDifferent(file)) {
-						System.out.println("conflitto su: " + file.getName());
+					i = remote_repo.isDifferent(file);
+					if (i != -1) {
+						remote_repo.getItems().get(i).setName("REMOTE-" + remote_repo.getItems().get(i).getName());
+						remote_repo.add_Item(new Item("LOCAL-" + file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+
+						System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
 					}
 				}
 
-				// // Scarico i file dalla DHT
-				// for (Item file : this.local_repo.getItems()) {
-				// 	File dest = new File(repo_name + "/" + file.getName());
-				// 	FileUtils.writeByteArrayToFile(dest, file.getBytes());
-				// 	// TODO implementare i conflitti
-				// }
-
-				// TODO Mostrare i cambiamenti
+				this.local_repo = remote_repo;
 			}
 			return "\nPull della repository \"" + repo_name + "\" completato ✅\n";
 		} catch (Exception e) {
