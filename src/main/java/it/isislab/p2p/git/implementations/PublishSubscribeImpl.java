@@ -221,7 +221,6 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 					modified.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 			}
 
-			System.out.println(this.added.size());
 			if (modified.size() == 0 && this.added.size() == 0)
 				return false;
 			else
@@ -290,7 +289,6 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 						System.out.println("conflitto su: " + file.getName());
 					}
 				}
-
 
 				// // Scarico i file dalla DHT
 				// for (Item file : this.local_repo.getItems()) {
