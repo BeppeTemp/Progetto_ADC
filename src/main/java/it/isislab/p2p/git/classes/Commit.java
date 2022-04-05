@@ -1,15 +1,15 @@
 package it.isislab.p2p.git.classes;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Commit implements Serializable{
     private String message;
-    private ArrayList<Item> modified;
-    private ArrayList<Item> added;
+    private HashMap<String, Item> modified;
+    private HashMap<String, Item> added;
 
     // Costruttore
-    public Commit(String message, ArrayList<Item> modified, ArrayList<Item> added) {
+    public Commit(String message, HashMap<String, Item> modified, HashMap<String, Item> added) {
         this.message = message;
         this.modified = modified;
         this.added = added;
@@ -24,19 +24,19 @@ public class Commit implements Serializable{
         this.message = message;
     }
 
-    public ArrayList<Item> getModified() {
+    public HashMap<String,Item> getModified() {
         return this.modified;
     }
 
-    public void setModified(ArrayList<Item> modified) {
+    public void setModified(HashMap<String,Item> modified) {
         this.modified = modified;
     }
 
-    public ArrayList<Item> getAdded() {
+    public HashMap<String,Item> getAdded() {
         return this.added;
     }
 
-    public void setAdded(ArrayList<Item> added) {
+    public void setAdded(HashMap<String,Item> added) {
         this.added = added;
     }
 

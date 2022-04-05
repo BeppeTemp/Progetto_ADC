@@ -35,7 +35,7 @@ public class GitProtocolImpl implements GitProtocol {
 	final private int DEFAULT_MASTER_PORT = 4000;
 
 	private ArrayList<Commit> commits;
-	private ArrayList<Item> added;
+	private HashMap<String, Item> added;
 
 	private Repository local_repo;
 	private HashMap<String, Path> my_repository;
@@ -45,7 +45,7 @@ public class GitProtocolImpl implements GitProtocol {
 	// Costruttore
 	public GitProtocolImpl(int _id, String _master_peer) throws Exception {
 		this.commits = new ArrayList<Commit>();
-		this.added = new ArrayList<Item>();
+		this.added = new HashMap<String, Item>();
 		this.my_repository = new HashMap<String, Path>();
 
 		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
@@ -66,13 +66,11 @@ public class GitProtocolImpl implements GitProtocol {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start();
 		futureGet.awaitUninterruptibly();
 
-		ArrayList<Item> items = (ArrayList<Item>) ((Repository) futureGet.dataMap().values().iterator().next().object()).getItems().values();
-
 		System.out.println("\n--------------------------------------------------------------------------------");
 		System.out.println("Nome: " + repo_name);
 		System.out.println("--------------------------------------------------------------------------------");
 		System.out.println("File contenuti: ");
-		for (Item item : items) {
+		for (Item item : ((Repository) futureGet.dataMap().values().iterator().next().object()).getItems().values()) {
 			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 		}
 		System.out.println("--------------------------------------------------------------------------------");
@@ -86,12 +84,12 @@ public class GitProtocolImpl implements GitProtocol {
 			System.out.println("Messaggio: " + commit.getMessage());
 			System.out.println("--------------------------------------------------------------------------------");
 			System.out.println("File modificati: ");
-			for (Item item : commit.getModified()) {
+			for (Item item : commit.getModified().values()) {
 				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
 			System.out.println("--------------------------------------------------------------------------------");
 			System.out.println("File aggiunti: ");
-			for (Item item : commit.getAdded()) {
+			for (Item item : commit.getAdded().values()) {
 				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
 			System.out.println("--------------------------------------------------------------------------------");
@@ -102,7 +100,7 @@ public class GitProtocolImpl implements GitProtocol {
 	private void show_added() {
 		System.out.println("\n--------------------------------------------------------------------------------");
 		System.out.println("Sono stati aggiunti " + this.added.size() + " file: ");
-		for (Item item : this.added) {
+		for (Item item : this.added.values()) {
 			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 		}
 		System.out.println("--------------------------------------------------------------------------------");
@@ -175,13 +173,13 @@ public class GitProtocolImpl implements GitProtocol {
 
 	@Override
 	public boolean addFilesToRepository(String repo_name, Path add_dir) {
-		this.added = new ArrayList<Item>();
+		this.added.clear();
 
 		try {
 			// Aggiungo i files alla repository
 			for (File file : add_dir.toFile().listFiles()) {
 				if (this.local_repo.getItems().containsKey(file.getName())) {
-					this.added.add(new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+					this.added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 				}
 			}
 
@@ -202,10 +200,10 @@ public class GitProtocolImpl implements GitProtocol {
 			File[] local_files = this.my_repository.get(repo_name).toFile().listFiles();
 
 			// Cerco file modificati
-			ArrayList<Item> modified = new ArrayList<Item>();
+			HashMap<String, Item> modified = new HashMap<String, Item>();
 			for (File file : local_files) {
 				if (this.local_repo.isModified(file))
-					modified.add(new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+					modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 			}
 
 			// Controllo se c'è stata almeno una modifica o un aggiunta
@@ -274,23 +272,63 @@ public class GitProtocolImpl implements GitProtocol {
 				if (remote_repo.getVersion() > local_repo.getVersion()) {
 					File[] local_files = this.my_repository.get(repo_name).toFile().listFiles();
 
+					// Identifico tutti i file da me modificati fino a questo momento
+					HashMap<String, Item> modified = new HashMap<String, Item>();
 					for (File file : local_files) {
-						if (remote_repo.isModified(file)) {
-							File remote_dest = new File(this.my_repository.get(repo_name).toString(), "/REMOTE-" + file.getName());
-							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(file.getName()).getBytes());
+						if (this.local_repo.isModified(file))
+							modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+					}
 
-							File local_dest = new File(this.my_repository.get(repo_name).toString(), "/LOCAL-" + file.getName());
-							file.renameTo(local_dest);
+					// Se i file da me modificati sono diversi da quelli contenuti in remoto
+					for (Item item : modified.values()) {
+						if (remote_repo.isModified(item)) {
+							// Ne genero due copie
+							File remote_dest = new File(this.my_repository.get(repo_name).toString(), "/REMOTE-" + item.getName());
+							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
 
-							System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
+							File local_dest = new File(this.my_repository.get(repo_name).toString(), "/LOCAL-" + item.getName());
+							File local_modified = new File(this.my_repository.get(repo_name).toString(), item.getName());
+							local_modified.renameTo(local_dest);
 
+							System.out.println("⚠️ Identificato conflitto sul file: " + item.getName());
+
+							// Attendo che l'utente risolve il conflitto
 							TextIO textIO = TextIoFactory.getTextIO();
 							while (local_files.length != this.my_repository.get(repo_name).toFile().listFiles().length)
 								textIO.newCharInputReader().read("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
+
+							// Non faccio nient'altro in quanto sarà il commit a identificarli nuovamente
+							// come modificati
 						}
 					}
 
-					this.local_repo = remote_repo;
+					// TODO possibile refactoring di questa parte (Se funge)
+					// Per ogni fine della repositore remota, non modificato da me, ne aggiorno lo
+					// stato in quella locale
+					for (Item item : remote_repo.getItems().values()) {
+						// Se l'item è contenuto localmente
+						if (this.local_repo.getItems().containsKey(item.getName())) {
+							// e non è uno dei modificati
+							if (!modified.containsKey(item.getName())) {
+								// ne aggiorno il contenuto sia nella repository locale
+								this.local_repo.getItems().get(item.getName()).setBytes(item.getBytes());
+
+								// che come file
+								File need_update = new File(this.my_repository.get(repo_name).toString(), item.getName());
+								FileUtils.writeByteArrayToFile(need_update, item.getBytes());
+							}
+						} else {
+							// Se non è contenuto localemente lo aggiungo alla repository locale
+							this.local_repo.getItems().put(item.getName(), item);
+
+							// e come file
+							File need_add = new File(this.my_repository.get(repo_name).toString(), item.getName());
+							FileUtils.writeByteArrayToFile(need_add, item.getBytes());
+						}
+					}
+
+					// Se non ho modificato nessun file tutti verranno aggiornati o aggiunti e le
+					// repository locale e remota saranno sincronizzate
 				}
 			}
 			return "\nPull della repository \"" + repo_name + "\" completato ✅\n";

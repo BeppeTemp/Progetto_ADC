@@ -35,10 +35,10 @@ public class Repository implements Serializable {
 
     // Aggiorna la repository in base a un commit
     public void commit(Commit commit) {
-        for (Item modified : commit.getModified()) {
+        for (Item modified : commit.getModified().values()) {
             this.items.replace(modified.getName(), modified);
         }
-        for (Item added : commit.getAdded()) {
+        for (Item added : commit.getAdded().values()) {
             this.items.put(added.getName(), added);
         }
         this.commits.add(commit);
@@ -50,6 +50,12 @@ public class Repository implements Serializable {
         String checksum = Generator.md5_Of_File(file);
         if (this.items.containsKey(file.getName()))
             if (this.items.get(file.getName()).getChecksum().compareTo(checksum) != 0)
+                return true;
+        return false;
+    }
+    public boolean isModified(Item item) throws Exception {
+        if (this.items.containsKey(item.getName()))
+            if (this.items.get(item.getName()).getChecksum().compareTo(item.getChecksum()) != 0)
                 return true;
         return false;
     }
