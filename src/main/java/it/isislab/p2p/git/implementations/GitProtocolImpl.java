@@ -178,7 +178,7 @@ public class GitProtocolImpl implements GitProtocol {
 		try {
 			// Aggiungo i files alla repository
 			for (File file : add_dir.toFile().listFiles()) {
-				if (this.local_repo.getItems().containsKey(file.getName())) {
+				if (!this.local_repo.contains(file)) {
 					this.added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 				}
 			}
@@ -301,6 +301,8 @@ public class GitProtocolImpl implements GitProtocol {
 							// come modificati
 						}
 					}
+
+					this.local_repo.setVersion(remote_repo.getVersion());
 
 					// TODO possibile refactoring di questa parte (Se funge)
 					// Per ogni fine della repositore remota, non modificato da me, ne aggiorno lo

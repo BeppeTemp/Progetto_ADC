@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import javax.swing.text.html.HTMLDocument.BlockElement;
+
 import net.tomp2p.peers.PeerAddress;
 
 public class Repository implements Serializable {
@@ -53,9 +55,19 @@ public class Repository implements Serializable {
                 return true;
         return false;
     }
+
     public boolean isModified(Item item) throws Exception {
         if (this.items.containsKey(item.getName()))
             if (this.items.get(item.getName()).getChecksum().compareTo(item.getChecksum()) != 0)
+                return true;
+        return false;
+    }
+
+    // Verifica se il file è contenuto
+    public boolean contains(File file) throws Exception {
+        String checksum = Generator.md5_Of_File(file);
+        if (this.items.containsKey(file.getName()))
+            if (this.items.get(file.getName()).getChecksum().compareTo(checksum) == 0)
                 return true;
         return false;
     }
@@ -95,11 +107,11 @@ public class Repository implements Serializable {
         this.users = users;
     }
 
-    public HashMap<String,Item> getItems() {
+    public HashMap<String, Item> getItems() {
         return this.items;
     }
 
-    public void setItems(HashMap<String,Item> items) {
+    public void setItems(HashMap<String, Item> items) {
         this.items = items;
     }
 
