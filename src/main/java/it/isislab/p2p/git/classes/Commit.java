@@ -1,4 +1,4 @@
-package it.isislab.p2p.git.beans;
+package it.isislab.p2p.git.classes;
 
 import java.io.Serializable;
 import java.util.ArrayList;

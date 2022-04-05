@@ -1,16 +1,16 @@
-package it.isislab.p2p.git.beans;
+package it.isislab.p2p.git.classes;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.security.MessageDigest;
 
-public class Md5_gen {
+public class Generator {
     //TODO Da vedere se si può usare qualche alternativa
-    public Md5_gen() { }
+    public Generator() { }
 
     // Calcola la checksum di un file
-    public String md5_Of_File(File file) throws Exception {
+    public static String md5_Of_File(File file) throws Exception {
         MessageDigest md = MessageDigest.getInstance("MD5");
         FileInputStream fs = new FileInputStream(file);
         BufferedInputStream bs = new BufferedInputStream(fs);

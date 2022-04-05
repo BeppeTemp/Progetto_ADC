@@ -1,6 +1,8 @@
 package it.isislab.p2p.git;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.beryx.textio.TextIO;
 import org.beryx.textio.TextIoFactory;
@@ -8,8 +10,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import it.isislab.p2p.git.implementations.MessageListenerImpl;
-import it.isislab.p2p.git.implementations.PublishSubscribeImpl;
+import it.isislab.p2p.git.implementations.GitProtocolImpl;
 
 /**
  * docker build --no-cache -t test . docker run -i -e MASTERIP="127.0.0.1" -e
@@ -45,14 +46,13 @@ public class Tester {
 		try {
 			parser.parseArgument(args);
 			TextIO textIO = TextIoFactory.getTextIO();
-			PublishSubscribeImpl peer = new PublishSubscribeImpl(id, master, new MessageListenerImpl(id));
+			GitProtocolImpl peer = new GitProtocolImpl(id, master);
 
 			System.out.println("\nPeer: " + id + " on Master: " + master + " \n");
 
 			boolean flag = true;
-			String name;
-			String path;
-			File files;
+			String repo_name;
+			String dir;
 
 			while (flag) {
 				printMenu();
@@ -60,70 +60,62 @@ public class Tester {
 
 				switch (option) {
 				case 1:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
-					path = textIO.newStringInputReader().read("Directory dei file:");
-					files = new File(path);
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
+					dir = textIO.newStringInputReader().read("Directory della repository:");
 
-					if (files.listFiles() != null)
-						if (peer.createRepository(name, files))
-							System.out.println("\nRepository \"" + name + "\" creata con successo ✅\n");
-						else
-							System.out.println("\nErrore nella creazione della repository ❌\n");
+					if (peer.createRepository(repo_name, Paths.get(dir)))
+						System.out.println("\nRepository \"" + repo_name + "\" creata con successo ✅\n");
 					else
-						System.out.println("\nDirectory inserita non valida ❌\n");
+						System.out.println("\nErrore nella creazione della repository ❌\n");
+
 					break;
 
 				case 2:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
+					dir = textIO.newStringInputReader().withDefaultValue(".").read("Directory di destinazione:");
 
-					if (peer.clone(name))
-						System.out.println("\nRepository clonata correttamente \"" + name + "\" ✅\n");
+					if (peer.clone(repo_name, Paths.get(dir)))
+						System.out.println("\nRepository \"" + repo_name + "\" clonata correttamente  ✅\n");
 					else
 						System.out.println("\nErrore nel clonare la repository ❌\n");
 					break;
 
 				case 3:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
-					path = textIO.newStringInputReader().read("Directory Name:");
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
+					dir = textIO.newStringInputReader().read("Directory da aggiungere:");
 
-					File[] directory_files = new File(path).listFiles();
-
-					if (directory_files != null) {
-						if (peer.addFilesToRepository(name, directory_files))
-							System.out.println("\nFile correttamente aggiunti alla repository ✅\"" + name + "\"\n");
-						else
-							System.out.println("\nErrore nell'aggiunta dei file ❌\n");
-					} else {
-						System.out.println("\nNessun file da aggiungere trovato nella directory ❌\n");
-					}
+					if (peer.addFilesToRepository(repo_name, Paths.get(dir)))
+						System.out.println("\nFile correttamente aggiunti alla repository \"" + repo_name + "\" ✅\n");
+					else
+						System.out.println("\nErrore nell'aggiunta dei file ❌\n");
 
 					break;
 
 				case 4:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
 					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷‍♂️").read("Messaggio:");
 
-					if (peer.commit(name, message))
-						System.out.println("\nCommit \"" + name + "\" creato correttamente ✅\n");
+					if (peer.commit(repo_name, message))
+						System.out.println("\nCommit \"" + repo_name + "\" creato correttamente ✅\n");
 					else
 						System.out.println("\nNessuna modifica trovata ❌\n");
 					break;
 
 				case 5:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
-					System.out.println(peer.push(name));
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
+					System.out.println(peer.push(repo_name));
 					break;
 
 				case 6:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
-					System.out.println(peer.pull(name));
+					repo_name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Nome della Repository:");
+					System.out.println(peer.pull(repo_name));
 					break;
 
 				case 7:
-					name = textIO.newStringInputReader().withDefaultValue("my_new_repository").read("Repository Name:");
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
 
-					if (peer.unsubscribeFromTopic(name))
-						System.out.println("\nRepository \"" + name + "\" Successfully Created\n");
+					if (peer.unsubscribeFromTopic(repo_name))
+						System.out.println("\nRepository \"" + repo_name + "\" Successfully Created\n");
 					else
 						System.out.println("\nError in repository creation\n");
 					break;

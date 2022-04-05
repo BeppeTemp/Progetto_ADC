@@ -18,11 +18,5 @@
             "mainClass": "it.isislab.p2p.git.Tester",
             "args": "-m 192.168.0.230 -id 1",
         }
-    ],
-    "compounds": [
-        {
-          "name": "2 Peer Together",
-          "configurations": ["Peer_One", "Peer_Two"],
-        }
-      ]
+    ]
 }

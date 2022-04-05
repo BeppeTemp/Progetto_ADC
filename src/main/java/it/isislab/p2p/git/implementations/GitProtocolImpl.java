@@ -4,32 +4,32 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import org.apache.commons.io.FileUtils;
 import org.beryx.textio.TextIO;
 import org.beryx.textio.TextIoFactory;
 
-import it.isislab.p2p.git.beans.Commit;
-import it.isislab.p2p.git.beans.Item;
-import it.isislab.p2p.git.beans.Md5_gen;
-import it.isislab.p2p.git.beans.Repository;
-import it.isislab.p2p.git.interfaces.MessageListener;
-import it.isislab.p2p.git.interfaces.PublishSubscribe;
+import it.isislab.p2p.git.classes.Commit;
+import it.isislab.p2p.git.classes.Generator;
+import it.isislab.p2p.git.classes.Item;
+import it.isislab.p2p.git.classes.Repository;
+import it.isislab.p2p.git.interfaces.GitProtocol;
+
 import net.tomp2p.dht.FutureGet;
 import net.tomp2p.dht.PeerBuilderDHT;
 import net.tomp2p.dht.PeerDHT;
 import net.tomp2p.futures.FutureBootstrap;
-import net.tomp2p.futures.FutureDirect;
 import net.tomp2p.p2p.Peer;
 import net.tomp2p.p2p.PeerBuilder;
 import net.tomp2p.peers.Number160;
 import net.tomp2p.peers.PeerAddress;
-import net.tomp2p.rpc.ObjectDataReply;
 import net.tomp2p.storage.Data;
 
-public class PublishSubscribeImpl implements PublishSubscribe {
+public class GitProtocolImpl implements GitProtocol {
 	final private Peer peer;
 	final private PeerDHT dht;
 	final private int DEFAULT_MASTER_PORT = 4000;
@@ -37,17 +37,16 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	private ArrayList<Commit> commits;
 	private ArrayList<Item> added;
 
-	private boolean state;
-
 	private Repository local_repo;
-	private static Md5_gen gen = new Md5_gen();
+	private HashMap<String, Path> my_repository;
 
 	final private ArrayList<String> s_topics = new ArrayList<String>();
 
 	// Costruttore
-	public PublishSubscribeImpl(int _id, String _master_peer, final MessageListener _listener) throws Exception {
+	public GitProtocolImpl(int _id, String _master_peer) throws Exception {
 		this.commits = new ArrayList<Commit>();
 		this.added = new ArrayList<Item>();
+		this.my_repository = new HashMap<String, Path>();
 
 		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
 		dht = new PeerBuilderDHT(peer).start();
@@ -60,12 +59,6 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 		} else {
 			throw new Exception("Error in master peer bootstrap.");
 		}
-		
-		peer.objectDataReply(new ObjectDataReply() {
-			public Object reply(PeerAddress sender, Object request) throws Exception {
-				return _listener.parseMessage(request);
-			}
-		});
 	}
 
 	// Mostra lo stato corrente della repository
@@ -73,28 +66,14 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start();
 		futureGet.awaitUninterruptibly();
 
-		ArrayList<Item> items = ((Repository) futureGet.dataMap().values().iterator().next().object()).getItems();
+		ArrayList<Item> items = (ArrayList<Item>) ((Repository) futureGet.dataMap().values().iterator().next().object()).getItems().values();
 
 		System.out.println("\n--------------------------------------------------------------------------------");
-		System.out.println("Name: " + repo_name);
+		System.out.println("Nome: " + repo_name);
 		System.out.println("--------------------------------------------------------------------------------");
-		System.out.println("File stored: ");
+		System.out.println("File contenuti: ");
 		for (Item item : items) {
-			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + "bytes");
-		}
-		System.out.println("--------------------------------------------------------------------------------");
-	}
-
-	// Mostra lo stato corrente della repository locale
-	private void show_Status() throws ClassNotFoundException, IOException {
-		ArrayList<Item> items = this.local_repo.getItems();
-
-		System.out.println("\n--------------------------------------------------------------------------------");
-		System.out.println("Name: " + this.local_repo.getName());
-		System.out.println("--------------------------------------------------------------------------------");
-		System.out.println("File stored: ");
-		for (Item item : items) {
-			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + "bytes");
+			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 		}
 		System.out.println("--------------------------------------------------------------------------------");
 	}
@@ -104,53 +83,60 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 		System.out.println(this.commits.size() + " commit, in coda:");
 		for (Commit commit : commits) {
 			System.out.println("\n--------------------------------------------------------------------------------");
-			System.out.println("Message: " + commit.getMessage());
+			System.out.println("Messaggio: " + commit.getMessage());
 			System.out.println("--------------------------------------------------------------------------------");
-			System.out.println("File modified: ");
+			System.out.println("File modificati: ");
 			for (Item item : commit.getModified()) {
-				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + "bytes");
+				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
 			System.out.println("--------------------------------------------------------------------------------");
-			System.out.println("File added: ");
+			System.out.println("File aggiunti: ");
 			for (Item item : commit.getAdded()) {
-				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + "bytes");
+				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
 			System.out.println("--------------------------------------------------------------------------------");
 		}
 	}
 
-	// Recupera la repository dalla DHT
-	private FutureGet retrieve_Repository(String repo_name) {
-		return dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+	// Mostra i file aggiunti
+	private void show_added() {
+		System.out.println("\n--------------------------------------------------------------------------------");
+		System.out.println("Sono stati aggiunti " + this.added.size() + " file: ");
+		for (Item item : this.added) {
+			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+		}
+		System.out.println("--------------------------------------------------------------------------------");
 	}
 
 	// --------------------------------------------------------------
 	// Implementazione metodi interfaccia
 	// --------------------------------------------------------------
 	@Override
-	public boolean createRepository(String repo_name, File directory) {
+	public boolean createRepository(String repo_name, Path start_dir) {
 		try {
-			FutureGet futureGet = this.retrieve_Repository(repo_name);
+			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 			if (futureGet.isSuccess() && futureGet.isEmpty()) {
-				// Creo una repository
-				dht.put(Number160.createHash(repo_name)).data(new Data(new Repository(repo_name, new HashSet<PeerAddress>(), directory))).start().awaitUninterruptibly();
+				Repository repository = new Repository(repo_name, new HashSet<PeerAddress>(), start_dir);
 
-				futureGet = this.retrieve_Repository(repo_name);
+				// Iscrivo il peer alla repository
+				repository.add_peer(dht.peer().peerAddress());
+
+				// Creo una repository
+				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
+
+				// Salvo la posizione della repository sul disco in locale
+				this.my_repository.put(repo_name, start_dir);
 
 				// Recupero la repository dalla DHT
+				futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 				this.local_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-
-				// Scarico i file dalla DHT
-				for (Item file : this.local_repo.getItems()) {
-					File dest = new File(repo_name + "/" + file.getName());
-					FileUtils.writeByteArrayToFile(dest, file.getBytes());
-				}
 
 				// ? Mostra lo stato della repository
 				this.show_Status(repo_name);
+
+				return true;
 			}
-			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -158,25 +144,29 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	}
 
 	@Override
-	public boolean clone(String repo_name) {
+	public boolean clone(String repo_name, Path clone_dir) {
 		try {
-			FutureGet futureGet = this.retrieve_Repository(repo_name);
+			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
 				this.local_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
-				// Scarico i file dalla DHT
-				for (Item file : this.local_repo.getItems()) {
-					File dest = new File(repo_name + "/" + file.getName());
+				// Scarico i file nella directory indicata
+				for (Item file : this.local_repo.getItems().values()) {
+					File dest = new File(clone_dir.toString(), file.getName());
 					FileUtils.writeByteArrayToFile(dest, file.getBytes());
 				}
 
 				// Aggiungo il nuovo iscritto
-				this.local_repo.getUsers().add(dht.peer().peerAddress());
+				this.local_repo.add_peer(dht.peer().peerAddress());
+
+				// Salvo la posizione della repository sul disco in locale
+				this.my_repository.put(repo_name, clone_dir);
 
 				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
+
+				return true;
 			}
-			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -184,24 +174,19 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	}
 
 	@Override
-	public boolean addFilesToRepository(String repo_name, File[] files) {
+	public boolean addFilesToRepository(String repo_name, Path add_dir) {
 		this.added = new ArrayList<Item>();
 
 		try {
 			// Aggiungo i files alla repository
-			for (File file : files) {
-				if (this.local_repo.contains(file) == -1) {
-					System.out.println("Aggiunto: " + file.getName());
-					this.added.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+			for (File file : add_dir.toFile().listFiles()) {
+				if (this.local_repo.getItems().containsKey(file.getName())) {
+					this.added.add(new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 				}
 			}
 
-			// ? Mostra lo stato della repository
-			System.out.println("File aggiunti: " + this.added.size());
-			if (this.added.size() != 0)
-				for (Item item : this.added) {
-					System.out.println(item.getName());
-				}
+			// ? Mostra file aggiunti
+			this.show_added();
 
 			return true;
 		} catch (Exception e) {
@@ -211,28 +196,29 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	}
 
 	@Override
-	public boolean commit(String repo_name, String message) {
+	public boolean commit(String repo_name, String msg) {
 		try {
-			// Recupero i file attualmente presenti localmente
-			File directory = new File(repo_name + "/");
-			File[] local_files = directory.listFiles();
+			// Recupero i file presenti nella repository locale
+			File[] local_files = this.my_repository.get(repo_name).toFile().listFiles();
 
 			// Cerco file modificati
 			ArrayList<Item> modified = new ArrayList<Item>();
 			for (File file : local_files) {
 				if (this.local_repo.isModified(file))
-					modified.add(new Item(file.getName(), gen.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+					modified.add(new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 			}
 
+			// Controllo se c'è stata almeno una modifica o un aggiunta
 			if (modified.size() == 0 && this.added.size() == 0)
 				return false;
 			else
-				this.commits.add(new Commit(message, modified, this.added));
+				// Aggiungo il commit alla coda
+				this.commits.add(new Commit(msg, modified, this.added));
 
 			// ? Mostra lo stato del commit
 			this.show_Commit();
-			return true;
 
+			return true;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -241,31 +227,33 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 
 	@Override
 	public String push(String repo_name) {
-		// TODO Check su pull
-		this.pull(repo_name);
-
 		try {
-			FutureGet futureGet = this.retrieve_Repository(repo_name);
+			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-				// Aggiorna la repository con i commit
-				for (Commit commit : this.commits) {
-					System.out.println("Commit #" + this.local_repo.getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
-					this.local_repo.commit(commit);
-				}
-				this.commits = new ArrayList<Commit>();
-
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-				for (PeerAddress peerAddress : remote_repo.getUsers()) {
-                    //Mando il messaggio agli altri peer e non a me stesso
-                    // if (!peerAddress.equals(dht.peer().peerAddress())) {
-                        FutureDirect futureDirect = dht.peer().sendDirect(peerAddress).object(this.local_repo).start();
-                        futureDirect.awaitUninterruptibly();
-                    // }
-                }
 
-				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
-				return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
+				if (remote_repo.getVersion() == local_repo.getVersion()) {
+
+					// Aggiorna la repository con i commit
+					for (Commit commit : this.commits) {
+						System.out.println("Commit #" + this.local_repo.getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
+						this.local_repo.commit(commit);
+					}
+					this.commits.clear();
+
+					for (PeerAddress peerAddress : remote_repo.getUsers()) {
+						// Mando il messaggio agli altri peer e non a me stesso
+						if (!peerAddress.equals(dht.peer().peerAddress())) {
+							dht.peer().sendDirect(peerAddress).object(this.local_repo).start().awaitUninterruptibly();
+						}
+					}
+
+					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
+
+					return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
+				} else
+					return "\n⚠️ Stato della repository cambiato, eseguire prima un Pull.";
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -276,35 +264,32 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 	@Override
 	public String pull(String repo_name) {
 		try {
-			FutureGet futureGet = this.retrieve_Repository(repo_name);
+			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
 				// Recupero la repository dalla DHT
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
 				// Se lo stato della repository è cambiata dal mio ultimo pull
-				if (remote_repo.getState() > local_repo.getState()) {
-					File local_dir = new File(repo_name + "/");
-					File[] local_files = local_dir.listFiles();
-	
-					int i;
-					for (File file : local_files) {
-						i = remote_repo.isDifferent(file);
-						if (i != -1) {
-							File remote_dest = new File(repo_name + "/REMOTE-" + file.getName());
-							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(i).getBytes());
+				if (remote_repo.getVersion() > local_repo.getVersion()) {
+					File[] local_files = this.my_repository.get(repo_name).toFile().listFiles();
 
-							File local_dest = new File(repo_name + "/LOCAL-" + file.getName());
+					for (File file : local_files) {
+						if (remote_repo.isModified(file)) {
+							File remote_dest = new File(this.my_repository.get(repo_name).toString(), "/REMOTE-" + file.getName());
+							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(file.getName()).getBytes());
+
+							File local_dest = new File(this.my_repository.get(repo_name).toString(), "/LOCAL-" + file.getName());
 							file.renameTo(local_dest);
-	
+
 							System.out.println("⚠️ Identificato conflitto sul file: " + file.getName());
 
 							TextIO textIO = TextIoFactory.getTextIO();
-							while(local_files.length != local_dir.listFiles().length)
+							while (local_files.length != this.my_repository.get(repo_name).toFile().listFiles().length)
 								textIO.newCharInputReader().read("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
 						}
 					}
-	
+
 					this.local_repo = remote_repo;
 				}
 			}
@@ -323,8 +308,7 @@ public class PublishSubscribeImpl implements PublishSubscribe {
 			if (futureGet.isSuccess()) {
 				if (futureGet.isEmpty())
 					return false;
-				HashSet<PeerAddress> peers_on_topic;
-				peers_on_topic = (HashSet<PeerAddress>) futureGet.dataMap().values().iterator().next().object();
+				HashSet<PeerAddress> peers_on_topic = (HashSet<PeerAddress>) futureGet.dataMap().values().iterator().next().object();
 				peers_on_topic.remove(dht.peer().peerAddress());
 				dht.put(Number160.createHash(_topic_name)).data(new Data(peers_on_topic)).start().awaitUninterruptibly();
 				s_topics.remove(_topic_name);
