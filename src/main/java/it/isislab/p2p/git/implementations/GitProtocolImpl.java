@@ -59,7 +59,7 @@ public class GitProtocolImpl implements GitProtocol {
 		}
 	}
 
-	//TODO da mettere nell'interfaccia
+	// TODO da mettere nell'interfaccia
 	public void show_Local_Commits() {
 		if (this.commits.size() != 0) {
 			System.out.println(this.commits.size() + " commit, in coda:");
@@ -83,7 +83,7 @@ public class GitProtocolImpl implements GitProtocol {
 		}
 	}
 
-	//TODO da mettere nell'interfaccia
+	// TODO da mettere nell'interfaccia
 	public void show_Remote_Repo(String repo_name) {
 		try {
 			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
@@ -109,7 +109,7 @@ public class GitProtocolImpl implements GitProtocol {
 		}
 	}
 
-	//TODO da mettere nell'interfaccia
+	// TODO da mettere nell'interfaccia
 	public void show_Local_Repo(String repo_name) {
 		if (this.local_repo.containsKey(repo_name)) {
 			Repository local_repo = this.local_repo.get(repo_name);
@@ -280,7 +280,7 @@ public class GitProtocolImpl implements GitProtocol {
 
 					return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
 				} else
-					return "\n⚠️ Stato della repository cambiato, eseguire prima un Pull.";
+					return "\n⚠️ Stato della repository cambiato, eseguire prima un Pull. \n";
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -320,12 +320,15 @@ public class GitProtocolImpl implements GitProtocol {
 							File local_modified = new File(this.my_repository.get(repo_name).toString(), item.getName());
 							local_modified.renameTo(local_dest);
 
-							System.out.println("\n⚠️ Identificato conflitto sul file: " + item.getName());
+							System.out.println("\n⚠️ Identificato conflitto sul file: " + item.getName() + "\n");
 
 							// Attendo che l'utente risolve il conflitto
 							TextIO textIO = TextIoFactory.getTextIO();
 							while (local_files.length != this.my_repository.get(repo_name).toFile().listFiles().length)
 								textIO.newCharInputReader().read("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
+
+							String message = textIO.newStringInputReader().withDefaultValue("Risolto conflitto sul file: " + item.getName()).read("Messaggio del nuovo commit:");
+							this.commit(repo_name, message);
 
 							// Non faccio nient'altro in quanto sarà il commit a identificarli nuovamente
 							// come modificati
