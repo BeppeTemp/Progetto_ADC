@@ -88,7 +88,7 @@ public class GitProtocolImpl implements GitProtocol {
 				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
 			System.out.println("--------------------------------------------------------------------------------");
-			System.out.println("File aggiunti: ");
+			System.out.println("File aggiunti o sovrascritti: ");
 			for (Item item : commit.getAdded().values()) {
 				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
@@ -213,6 +213,8 @@ public class GitProtocolImpl implements GitProtocol {
 				// Aggiungo il commit alla coda
 				this.commits.add(new Commit(msg, modified, this.added));
 
+			this.added.clear();
+
 			// ? Mostra lo stato del commit
 			this.show_Commit();
 
@@ -267,13 +269,14 @@ public class GitProtocolImpl implements GitProtocol {
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
 				// Recupero la repository dalla DHT
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				
+				HashMap<String, Item> modified = new HashMap<String, Item>();
 
 				// Se lo stato della repository è cambiata dal mio ultimo pull
 				if (remote_repo.getVersion() > local_repo.getVersion()) {
 					File[] local_files = this.my_repository.get(repo_name).toFile().listFiles();
 
 					// Identifico tutti i file da me modificati fino a questo momento
-					HashMap<String, Item> modified = new HashMap<String, Item>();
 					for (File file : local_files) {
 						if (this.local_repo.isModified(file))
 							modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
@@ -290,7 +293,7 @@ public class GitProtocolImpl implements GitProtocol {
 							File local_modified = new File(this.my_repository.get(repo_name).toString(), item.getName());
 							local_modified.renameTo(local_dest);
 
-							System.out.println("⚠️ Identificato conflitto sul file: " + item.getName());
+							System.out.println("\n⚠️ Identificato conflitto sul file: " + item.getName());
 
 							// Attendo che l'utente risolve il conflitto
 							TextIO textIO = TextIoFactory.getTextIO();
@@ -301,37 +304,37 @@ public class GitProtocolImpl implements GitProtocol {
 							// come modificati
 						}
 					}
-
-					this.local_repo.setVersion(remote_repo.getVersion());
-
-					// TODO possibile refactoring di questa parte (Se funge)
-					// Per ogni fine della repositore remota, non modificato da me, ne aggiorno lo
-					// stato in quella locale
-					for (Item item : remote_repo.getItems().values()) {
-						// Se l'item è contenuto localmente
-						if (this.local_repo.getItems().containsKey(item.getName())) {
-							// e non è uno dei modificati
-							if (!modified.containsKey(item.getName())) {
-								// ne aggiorno il contenuto sia nella repository locale
-								this.local_repo.getItems().get(item.getName()).setBytes(item.getBytes());
-
-								// che come file
-								File need_update = new File(this.my_repository.get(repo_name).toString(), item.getName());
-								FileUtils.writeByteArrayToFile(need_update, item.getBytes());
-							}
-						} else {
-							// Se non è contenuto localemente lo aggiungo alla repository locale
-							this.local_repo.getItems().put(item.getName(), item);
-
-							// e come file
-							File need_add = new File(this.my_repository.get(repo_name).toString(), item.getName());
-							FileUtils.writeByteArrayToFile(need_add, item.getBytes());
-						}
-					}
-
-					// Se non ho modificato nessun file tutti verranno aggiornati o aggiunti e le
-					// repository locale e remota saranno sincronizzate
 				}
+
+				this.local_repo.setVersion(remote_repo.getVersion());
+
+				// TODO possibile refactoring di questa parte (Se funge)
+				// Per ogni fine della repositore remota, non modificato da me, ne aggiorno lo
+				// stato in quella locale
+				for (Item item : remote_repo.getItems().values()) {
+					// Se l'item è contenuto localmente
+					if (this.local_repo.getItems().containsKey(item.getName())) {
+						// e non è uno dei modificati
+						if (!modified.containsKey(item.getName())) {
+							// ne aggiorno il contenuto sia nella repository locale
+							this.local_repo.getItems().get(item.getName()).setBytes(item.getBytes());
+
+							// che come file
+							File need_update = new File(this.my_repository.get(repo_name).toString(), item.getName());
+							FileUtils.writeByteArrayToFile(need_update, item.getBytes());
+						}
+					} else {
+						// Se non è contenuto localemente lo aggiungo alla repository locale
+						this.local_repo.getItems().put(item.getName(), item);
+
+						// e come file
+						File need_add = new File(this.my_repository.get(repo_name).toString(), item.getName());
+						FileUtils.writeByteArrayToFile(need_add, item.getBytes());
+					}
+				}
+
+				// Se non ho modificato nessun file tutti verranno aggiornati o aggiunti e le
+				// repository locale e remota saranno sincronizzate
 			}
 			return "\nPull della repository \"" + repo_name + "\" completato ✅\n";
 		} catch (Exception e) {
