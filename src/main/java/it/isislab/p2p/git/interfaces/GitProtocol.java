@@ -61,7 +61,7 @@ public interface GitProtocol {
 	 * @param repo_name una Stringa, contenente il nome della repository.
 	 * @return true if it is correctly created, false otherwise.
 	 */
-	public boolean unsubscribeFromTopic(String _topic_name);
+	public boolean removeRepo(String repo_name);
 
 	/**
 	 * ------------------ DEFINED BY STUDENT ------------------

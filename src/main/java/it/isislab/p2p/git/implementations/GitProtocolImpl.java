@@ -1,7 +1,6 @@
 package it.isislab.p2p.git.implementations;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,16 +36,15 @@ public class GitProtocolImpl implements GitProtocol {
 	private ArrayList<Commit> commits;
 	private HashMap<String, Item> added;
 
-	private Repository local_repo;
+	private HashMap<String, Repository> local_repo;
 	private HashMap<String, Path> my_repository;
-
-	final private ArrayList<String> s_topics = new ArrayList<String>();
 
 	// Costruttore
 	public GitProtocolImpl(int _id, String _master_peer) throws Exception {
 		this.commits = new ArrayList<Commit>();
 		this.added = new HashMap<String, Item>();
 		this.my_repository = new HashMap<String, Path>();
+		this.local_repo = new HashMap<String, Repository>();
 
 		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
 		dht = new PeerBuilderDHT(peer).start();
@@ -61,38 +59,73 @@ public class GitProtocolImpl implements GitProtocol {
 		}
 	}
 
-	// Mostra lo stato corrente della repository
-	private void show_Status(String repo_name) throws ClassNotFoundException, IOException {
-		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start();
-		futureGet.awaitUninterruptibly();
-
-		System.out.println("\n--------------------------------------------------------------------------------");
-		System.out.println("Nome: " + repo_name);
-		System.out.println("--------------------------------------------------------------------------------");
-		System.out.println("File contenuti: ");
-		for (Item item : ((Repository) futureGet.dataMap().values().iterator().next().object()).getItems().values()) {
-			System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+	//TODO da mettere nell'interfaccia
+	public void show_Local_Commits() {
+		if (this.commits.size() != 0) {
+			System.out.println(this.commits.size() + " commit, in coda:");
+			for (Commit commit : commits) {
+				System.out.println("\n--------------------------------------------------------------------------------");
+				System.out.println("🔹 Messaggio: " + commit.getMessage());
+				System.out.println("--------------------------------------------------------------------------------");
+				System.out.println("File modificati: ");
+				for (Item item : commit.getModified().values()) {
+					System.out.println("\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+				}
+				System.out.println("--------------------------------------------------------------------------------");
+				System.out.println("File aggiunti o sovrascritti: ");
+				for (Item item : commit.getAdded().values()) {
+					System.out.println("\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+				}
+				System.out.println("--------------------------------------------------------------------------------");
+			}
+		} else {
+			System.out.println("\n⚠️ Nessun commit da visualizzare.\n");
 		}
-		System.out.println("--------------------------------------------------------------------------------");
 	}
 
-	// Mostra lo stato del commit
-	private void show_Commit() {
-		System.out.println(this.commits.size() + " commit, in coda:");
-		for (Commit commit : commits) {
+	//TODO da mettere nell'interfaccia
+	public void show_Remote_Repo(String repo_name) {
+		try {
+			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+
+			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
+				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+
+				System.out.println("\n--------------------------------------------------------------------------------");
+				System.out.println("🔹 Nome: " + remote_repo.getName());
+				System.out.println("🔹 Versione: " + remote_repo.getVersion());
+				System.out.println("🔹 Numero di commit: " + remote_repo.getCommits().size());
+				System.out.println("--------------------------------------------------------------------------------");
+				System.out.println("File contenuti: ");
+				for (Item item : remote_repo.getItems().values()) {
+					System.out.println("\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+				}
+				System.out.println("--------------------------------------------------------------------------------");
+			} else {
+				System.out.println("\nRepository non trovata ❌\n");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	//TODO da mettere nell'interfaccia
+	public void show_Local_Repo(String repo_name) {
+		if (this.local_repo.containsKey(repo_name)) {
+			Repository local_repo = this.local_repo.get(repo_name);
+
 			System.out.println("\n--------------------------------------------------------------------------------");
-			System.out.println("Messaggio: " + commit.getMessage());
+			System.out.println("🔹 Nome: " + local_repo.getName());
+			System.out.println("🔹 Versione: " + local_repo.getVersion());
+			System.out.println("🔹 Numero di commit: " + local_repo.getCommits().size());
 			System.out.println("--------------------------------------------------------------------------------");
-			System.out.println("File modificati: ");
-			for (Item item : commit.getModified().values()) {
-				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+			System.out.println("File contenuti: ");
+			for (Item item : local_repo.getItems().values()) {
+				System.out.println("\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
 			}
 			System.out.println("--------------------------------------------------------------------------------");
-			System.out.println("File aggiunti o sovrascritti: ");
-			for (Item item : commit.getAdded().values()) {
-				System.out.println("\t* " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
-			}
-			System.out.println("--------------------------------------------------------------------------------");
+		} else {
+			System.out.println("\nRepository non trovata ❌\n");
 		}
 	}
 
@@ -128,10 +161,11 @@ public class GitProtocolImpl implements GitProtocol {
 
 				// Recupero la repository dalla DHT
 				futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
-				this.local_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				this.local_repo.put(remote_repo.getName(), remote_repo);
 
 				// ? Mostra lo stato della repository
-				this.show_Status(repo_name);
+				this.show_Remote_Repo(repo_name);
 
 				return true;
 			}
@@ -147,21 +181,22 @@ public class GitProtocolImpl implements GitProtocol {
 			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-				this.local_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				this.local_repo.put(remote_repo.getName(), remote_repo);
 
 				// Scarico i file nella directory indicata
-				for (Item file : this.local_repo.getItems().values()) {
+				for (Item file : this.local_repo.get(repo_name).getItems().values()) {
 					File dest = new File(clone_dir.toString(), file.getName());
 					FileUtils.writeByteArrayToFile(dest, file.getBytes());
 				}
 
 				// Aggiungo il nuovo iscritto
-				this.local_repo.add_peer(dht.peer().peerAddress());
+				this.local_repo.get(repo_name).add_peer(dht.peer().peerAddress());
 
 				// Salvo la posizione della repository sul disco in locale
 				this.my_repository.put(repo_name, clone_dir);
 
-				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
+				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo.get(repo_name))).start().awaitUninterruptibly();
 
 				return true;
 			}
@@ -178,7 +213,7 @@ public class GitProtocolImpl implements GitProtocol {
 		try {
 			// Aggiungo i files alla repository
 			for (File file : add_dir.toFile().listFiles()) {
-				if (!this.local_repo.contains(file)) {
+				if (!this.local_repo.get(repo_name).contains(file)) {
 					this.added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 				}
 			}
@@ -202,7 +237,7 @@ public class GitProtocolImpl implements GitProtocol {
 			// Cerco file modificati
 			HashMap<String, Item> modified = new HashMap<String, Item>();
 			for (File file : local_files) {
-				if (this.local_repo.isModified(file))
+				if (this.local_repo.get(repo_name).isModified(file))
 					modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 			}
 
@@ -213,10 +248,8 @@ public class GitProtocolImpl implements GitProtocol {
 				// Aggiungo il commit alla coda
 				this.commits.add(new Commit(msg, modified, this.added));
 
-			this.added.clear();
-
 			// ? Mostra lo stato del commit
-			this.show_Commit();
+			this.show_Local_Commits();
 
 			return true;
 		} catch (Exception e) {
@@ -233,23 +266,17 @@ public class GitProtocolImpl implements GitProtocol {
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
-				if (remote_repo.getVersion() == local_repo.getVersion()) {
+				if (remote_repo.getVersion() == this.local_repo.get(repo_name).getVersion()) {
 
 					// Aggiorna la repository con i commit
 					for (Commit commit : this.commits) {
-						System.out.println("Commit #" + this.local_repo.getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
-						this.local_repo.commit(commit);
+						System.out.println("Commit #" + this.local_repo.get(repo_name).getCommits().size() + " msg: " + commit.getMessage() + " elaborato");
+						this.local_repo.get(repo_name).commit(commit);
 					}
 					this.commits.clear();
+					this.added.clear();
 
-					for (PeerAddress peerAddress : remote_repo.getUsers()) {
-						// Mando il messaggio agli altri peer e non a me stesso
-						if (!peerAddress.equals(dht.peer().peerAddress())) {
-							dht.peer().sendDirect(peerAddress).object(this.local_repo).start().awaitUninterruptibly();
-						}
-					}
-
-					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo)).start().awaitUninterruptibly();
+					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repo.get(repo_name))).start().awaitUninterruptibly();
 
 					return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
 				} else
@@ -273,12 +300,12 @@ public class GitProtocolImpl implements GitProtocol {
 				HashMap<String, Item> modified = new HashMap<String, Item>();
 
 				// Se lo stato della repository è cambiata dal mio ultimo pull
-				if (remote_repo.getVersion() > local_repo.getVersion()) {
+				if (remote_repo.getVersion() > local_repo.get(repo_name).getVersion()) {
 					File[] local_files = this.my_repository.get(repo_name).toFile().listFiles();
 
 					// Identifico tutti i file da me modificati fino a questo momento
 					for (File file : local_files) {
-						if (this.local_repo.isModified(file))
+						if (this.local_repo.get(repo_name).isModified(file))
 							modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 					}
 
@@ -306,18 +333,18 @@ public class GitProtocolImpl implements GitProtocol {
 					}
 				}
 
-				this.local_repo.setVersion(remote_repo.getVersion());
+				this.local_repo.get(repo_name).setVersion(remote_repo.getVersion());
 
 				// TODO possibile refactoring di questa parte (Se funge)
 				// Per ogni fine della repositore remota, non modificato da me, ne aggiorno lo
 				// stato in quella locale
 				for (Item item : remote_repo.getItems().values()) {
 					// Se l'item è contenuto localmente
-					if (this.local_repo.getItems().containsKey(item.getName())) {
+					if (this.local_repo.get(repo_name).getItems().containsKey(item.getName())) {
 						// e non è uno dei modificati
 						if (!modified.containsKey(item.getName())) {
 							// ne aggiorno il contenuto sia nella repository locale
-							this.local_repo.getItems().get(item.getName()).setBytes(item.getBytes());
+							this.local_repo.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
 
 							// che come file
 							File need_update = new File(this.my_repository.get(repo_name).toString(), item.getName());
@@ -325,7 +352,7 @@ public class GitProtocolImpl implements GitProtocol {
 						}
 					} else {
 						// Se non è contenuto localemente lo aggiungo alla repository locale
-						this.local_repo.getItems().put(item.getName(), item);
+						this.local_repo.get(repo_name).getItems().put(item.getName(), item);
 
 						// e come file
 						File need_add = new File(this.my_repository.get(repo_name).toString(), item.getName());
@@ -344,17 +371,27 @@ public class GitProtocolImpl implements GitProtocol {
 	}
 
 	@Override
-	public boolean unsubscribeFromTopic(String _topic_name) {
+	public boolean removeRepo(String repo_name) {
 		try {
-			FutureGet futureGet = dht.get(Number160.createHash(_topic_name)).start();
-			futureGet.awaitUninterruptibly();
+			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 			if (futureGet.isSuccess()) {
 				if (futureGet.isEmpty())
 					return false;
-				HashSet<PeerAddress> peers_on_topic = (HashSet<PeerAddress>) futureGet.dataMap().values().iterator().next().object();
-				peers_on_topic.remove(dht.peer().peerAddress());
-				dht.put(Number160.createHash(_topic_name)).data(new Data(peers_on_topic)).start().awaitUninterruptibly();
-				s_topics.remove(_topic_name);
+
+				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				remote_repo.remove_peer(dht.peer().peerAddress());
+
+				dht.put(Number160.createHash(repo_name)).data(new Data(remote_repo)).start().awaitUninterruptibly();
+
+				TextIO textIO = TextIoFactory.getTextIO();
+				String value = textIO.newStringInputReader().read("Y, per elimanare i file, N per mantenerli: ");
+
+				if (value.toUpperCase().compareTo("Y") == 0) {
+					File repo_dir = this.my_repository.get(repo_name).toFile();
+					repo_dir.delete();
+				}
+
+				my_repository.remove(repo_name);
 				return true;
 			}
 		} catch (Exception e) {
@@ -365,8 +402,9 @@ public class GitProtocolImpl implements GitProtocol {
 
 	@Override
 	public boolean leaveNetwork() {
-		for (String topic : new ArrayList<String>(s_topics))
-			unsubscribeFromTopic(topic);
+		for (String repo_name : this.my_repository.keySet()) {
+			this.removeRepo(repo_name);
+		}
 		dht.peer().announceShutdown().start().awaitUninterruptibly();
 		return true;
 	}

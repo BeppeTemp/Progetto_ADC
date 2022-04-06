@@ -1,7 +1,5 @@
 package it.isislab.p2p.git;
 
-import java.io.File;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.beryx.textio.TextIO;
@@ -21,22 +19,25 @@ import it.isislab.p2p.git.implementations.GitProtocolImpl;
  */
 public class Tester {
 
-	@Option(name = "-m", aliases = "--masterip", usage = "the master peer ip address", required = true)
+	@Option(name = "-m", aliases = "--masterip", usage = "Ip del master peer", required = true)
 	private static String master;
 
-	@Option(name = "-id", aliases = "--identifierpeer", usage = "the unique identifier for this peer", required = true)
+	@Option(name = "-id", aliases = "--identifierpeer", usage = "L'identificativo univoco del peer", required = true)
 	private static int id;
 
 	private static void printMenu() {
-		System.out.println("Menu: ");
-		System.out.println("1 - Crea una Repository");
-		System.out.println("2 - Clona una Repository");
-		System.out.println("3 - Aggiungi file a una repository");
-		System.out.println("4 - Commit");
-		System.out.println("5 - Push");
-		System.out.println("6 - Pull");
-		System.out.println("7 - UN SUBSCRIBE ON TOPIC");
-		System.out.println("8 - Esci");
+		System.out.println("🍳 Menu: ");
+		System.out.println(" 1 - Crea una Repository");
+		System.out.println(" 2 - Clona una Repository");
+		System.out.println(" 3 - Aggiungi file a una repository");
+		System.out.println(" 4 - Commit");
+		System.out.println(" 5 - Push");
+		System.out.println(" 6 - Pull");
+		System.out.println(" 8 - Mostra lo stato di una repository remota");
+		System.out.println(" 9 - Mostra lo stato di una repository locale");
+		System.out.println("10 - Mostra commits locali");
+		System.out.println("11 - Elimina repository");
+		System.out.println("12 - Esci 🚪");
 		System.out.println();
 	}
 
@@ -56,7 +57,7 @@ public class Tester {
 
 			while (flag) {
 				printMenu();
-				int option = textIO.newIntInputReader().withMaxVal(6).withMinVal(1).read("Option");
+				int option = textIO.newIntInputReader().withMaxVal(12).withMinVal(1).read("Option");
 
 				switch (option) {
 				case 1:
@@ -93,10 +94,10 @@ public class Tester {
 
 				case 4:
 					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
-					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷‍♂️").read("Messaggio:");
+					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷").read("Messaggio:");
 
 					if (peer.commit(repo_name, message))
-						System.out.println("\nCommit \"" + repo_name + "\" creato correttamente ✅\n");
+						System.out.println("\nCommit sulla repository \"" + repo_name + "\" creato correttamente ✅\n");
 					else
 						System.out.println("\nNessuna modifica trovata ❌\n");
 					break;
@@ -114,18 +115,36 @@ public class Tester {
 				case 7:
 					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
 
-					if (peer.unsubscribeFromTopic(repo_name))
-						System.out.println("\nRepository \"" + repo_name + "\" Successfully Created\n");
+					if (peer.removeRepo(repo_name))
+						System.out.println("\nRepository \"" + repo_name + "\" correttamente eliminata ✅\n");
 					else
-						System.out.println("\nError in repository creation\n");
+						System.out.println("\nErrore nell'eliminazione della repository ❌\n");
 					break;
 
 				case 8:
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
+					peer.show_Remote_Repo(repo_name);
+					break;
+
+				case 9:
+					repo_name = textIO.newStringInputReader().read("Nome della Repository:");
+					peer.show_Local_Repo(repo_name);
+					break;
+
+				case 10:
+					peer.show_Local_Commits();
+					break;
+
+				case 11:
 					if (peer.leaveNetwork()) {
-						System.out.println("\nDisconnection completed\n");
+						System.out.println("\nDisconnessione completata ✅\n");
 						flag = false;
 					} else
-						System.out.println("\nError in repository creation\n");
+						System.out.println("\nErrore nella disconessione ❌\n");
+					break;
+
+				case 12:
+					flag = false;
 					break;
 
 				default:
@@ -133,7 +152,7 @@ public class Tester {
 				}
 			}
 		} catch (CmdLineException clEx) {
-			System.err.println("ERROR: Unable to parse command-line options: " + clEx);
+			System.err.println("ERRORE: Impossibile completare il parsinge delle opzioni: " + clEx);
 		}
 	}
 }

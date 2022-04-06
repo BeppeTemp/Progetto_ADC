@@ -77,6 +77,11 @@ public class Repository implements Serializable {
         return true;
     }
 
+    public boolean remove_peer(PeerAddress peer) {
+        this.users.remove(peer);
+        return true;
+    }
+
     public boolean add_Item(Item item) {
         this.items.put(item.getName(), item);
         return true;
