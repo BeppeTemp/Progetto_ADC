@@ -1,6 +1,7 @@
-package it.isislab.p2p.git.classes;
+package it.isislab.p2p.git.entity;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -8,21 +9,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import javax.swing.text.html.HTMLDocument.BlockElement;
-
 import net.tomp2p.peers.PeerAddress;
 
 public class Repository implements Serializable {
     private String name;
+    private int owner;
     private int version;
     private HashSet<PeerAddress> users;
     private HashMap<String, Item> items;
     private ArrayList<Commit> commits;
 
     // Costruttore
-    public Repository(String name, HashSet<PeerAddress> users, Path start_dir) throws Exception {
+    public Repository(String name, int owner,HashSet<PeerAddress> users, Path start_dir) {
         this.name = name;
         this.users = users;
+        this.owner = owner;
 
         this.items = new HashMap<String, Item>();
         this.commits = new ArrayList<Commit>();
@@ -31,8 +32,11 @@ public class Repository implements Serializable {
 
         File[] files = start_dir.toFile().listFiles();
         for (File file : files)
-            this.items.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
-
+            try {
+                this.items.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
     }
 
     // Aggiorna la repository in base a un commit
@@ -48,7 +52,7 @@ public class Repository implements Serializable {
     }
 
     // Verifica se un file è stato modificato
-    public boolean isModified(File file) throws Exception {
+    public boolean isModified(File file) {
         String checksum = Generator.md5_Of_File(file);
         if (this.items.containsKey(file.getName()))
             if (this.items.get(file.getName()).getChecksum().compareTo(checksum) != 0)
@@ -56,7 +60,7 @@ public class Repository implements Serializable {
         return false;
     }
 
-    public boolean isModified(Item item) throws Exception {
+    public boolean isModified(Item item) {
         if (this.items.containsKey(item.getName()))
             if (this.items.get(item.getName()).getChecksum().compareTo(item.getChecksum()) != 0)
                 return true;
@@ -64,7 +68,7 @@ public class Repository implements Serializable {
     }
 
     // Verifica se il file è contenuto
-    public boolean contains(File file) throws Exception {
+    public boolean contains(File file) {
         String checksum = Generator.md5_Of_File(file);
         if (this.items.containsKey(file.getName()))
             if (this.items.get(file.getName()).getChecksum().compareTo(checksum) == 0)
@@ -96,6 +100,14 @@ public class Repository implements Serializable {
         this.name = name;
     }
 
+    public int getOwner() {
+        return this.owner;
+    }
+
+    public void setOwner(int owner) {
+        this.owner = owner;
+    }
+
     public int getVersion() {
         return this.version;
     }
@@ -112,11 +124,11 @@ public class Repository implements Serializable {
         this.users = users;
     }
 
-    public HashMap<String, Item> getItems() {
+    public HashMap<String,Item> getItems() {
         return this.items;
     }
 
-    public void setItems(HashMap<String, Item> items) {
+    public void setItems(HashMap<String,Item> items) {
         this.items = items;
     }
 
@@ -127,4 +139,19 @@ public class Repository implements Serializable {
     public void setCommits(ArrayList<Commit> commits) {
         this.commits = commits;
     }
+
+
+    @Override
+    public String toString() {
+        String repo = "\n--------------------------------------------------------------------------------" + "\n🔹 Name: " + this.getName() + "\n🔹 Version: " + this.getVersion()
+                + "\n🔹 Owner ID: " + this.getOwner() + "\n--------------------------------------------------------------------------------" + "\nFile contenuti:\n";
+
+        for (Item item : this.getItems().values()) {
+            repo += "\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes\n";
+        }
+        repo += "--------------------------------------------------------------------------------";
+
+        return repo;
+    }
+
 }

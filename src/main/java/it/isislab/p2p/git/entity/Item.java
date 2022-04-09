@@ -1,4 +1,4 @@
-package it.isislab.p2p.git.classes;
+package it.isislab.p2p.git.entity;
 
 import java.io.Serializable;
 

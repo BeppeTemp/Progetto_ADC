@@ -1,17 +1,23 @@
 package it.isislab.p2p.git.interfaces;
 
 import java.nio.file.Path;
+import java.util.Collection;
+
+import it.isislab.p2p.git.entity.Item;
 
 public interface GitProtocol {
 
 	/**
 	 * ------------------ MODIFICATO DALLO STUDENTE ------------------
-	 * Crea una repository in una directory e aggiunge tutti i file se presenti
+	 * Crea una repository a partire da una directory aggiungendo tutti i file presenti,
+	 * dopodichè clona la nuova repository nel path di destinazione
 	 * @param repo_name una Stringa, contenente il nome della repository.
 	 * @param start_dir un Path contenente la posizione della directory da cui verra creata la repository.
+	 * @param repo_dir un Path dove verrà clonata la repository appena creata.
 	 * @return vero se creata correttamente, falso negli altri casi.
+	 * @throws RepositoryAlreadyExistException in caso si cerchi di creare una reopsitory esistente
 	 */
-	public boolean createRepository(String repo_name, Path start_dir);
+	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws Exception;
 	
 	/**
 	 * ------------------ DEFINITO DALLO STUDENTE ------------------
@@ -28,7 +34,7 @@ public interface GitProtocol {
 	 * @param add_dir un Path contente il file o i file da aggiungere.
 	 * @return vero se creata correttamente, falso negli altri casi.
 	 */
-	public boolean addFilesToRepository(String _repo_name, Path add_dir);
+	public Collection<Item> addFilesToRepository(String _repo_name, Path add_dir);
 	
 	/**
 	 * Applica i cambiamenti al file nella repository locale
