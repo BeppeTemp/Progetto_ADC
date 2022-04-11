@@ -11,7 +11,10 @@ import org.kohsuke.args4j.Option;
 
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
+import it.isislab.p2p.git.exceptions.NothingToPushException;
+import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
+import it.isislab.p2p.git.exceptions.RepositoryNotExist;
 import it.isislab.p2p.git.implementations.TempestGit;
 
 /**
@@ -57,7 +60,7 @@ public class Launcher {
 			boolean flag = true;
 			while (flag) {
 				printMenu();
-				int option = textIO.newIntInputReader().withMaxVal(12).withMinVal(1).read("Option");
+				int option = textIO.newIntInputReader().withMaxVal(11).withMinVal(1).read("Option");
 
 				String repo_name;
 
@@ -114,6 +117,7 @@ public class Launcher {
 					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷").read("Commit Message:");
 
 					if (peer.commit(repo_name, message)) {
+						System.out.println("\nIl seguente commit è stato generato:");
 						System.out.println(peer.get_local_commits(repo_name).get(peer.get_local_commits(repo_name).size() - 1).toString());
 						System.out.println("\nCommit sulla repository \"" + repo_name + "\" creato correttamente ✅\n");
 					} else
@@ -122,7 +126,24 @@ public class Launcher {
 
 				case 5:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
-					System.out.println(peer.push(repo_name));
+
+					if (peer.get_local_commits(repo_name) != null) {
+						System.out.println("\nI seguenti commit saranno elaborati: ");
+						for (Commit commit : peer.get_local_commits(repo_name)) {
+							System.out.println(commit.toString());
+						}
+					}
+
+					try {
+						if (peer.push(repo_name))
+							System.out.println("\nPush sulla repository \"" + repo_name + "\" creato correttamente ✅\n");
+					} catch (RepoStateChangedException e) {
+						System.out.println("\n⚠️ Stato della repository remota cambiato, necessario pull\n");
+					} catch (NothingToPushException e) {
+						System.out.println("\n⚠️ Nessun commit in coda\n");
+					} catch (RepositoryNotExist e) {
+						System.out.println("\nLa repository inserita non esiste ❌\n");
+					}
 					break;
 
 				case 6:
@@ -150,8 +171,12 @@ public class Launcher {
 
 				case 10:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
-					for (Commit commit : peer.get_local_commits(repo_name)) {
-						System.out.println(commit.toString());
+					if (peer.get_local_commits(repo_name) != null)
+						for (Commit commit : peer.get_local_commits(repo_name)) {
+							System.out.println(commit.toString());
+						}
+					else {
+						System.out.println("\n⚠️  Nessun commit in coda. \n");
 					}
 					break;
 

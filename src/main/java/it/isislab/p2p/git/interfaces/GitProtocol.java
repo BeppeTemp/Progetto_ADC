@@ -1,9 +1,17 @@
 package it.isislab.p2p.git.interfaces;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 
+import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
+import it.isislab.p2p.git.entity.Repository;
+import it.isislab.p2p.git.exceptions.NothingToPushException;
+import it.isislab.p2p.git.exceptions.RepoStateChangedException;
+import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
+import it.isislab.p2p.git.exceptions.RepositoryNotExist;
 
 public interface GitProtocol {
 
@@ -50,8 +58,13 @@ public interface GitProtocol {
 	 * dell'ultimo pull, il push fallisce e chiede un pull.
 	 * @param repo_name una Stringa, contenente il nome della repository.
 	 * @return una Stringa, contenten un messaggi operativo.
+	 * @throws RepoStateChangedException
+	 * @throws NothingToPushException
+	 * @throws RepositoryNotExist
+	 * @throws IOException
+	 * @throws ClassNotFoundException
 	 */
-	public String push(String _repo_name);
+	public Boolean push(String _repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExist, ClassNotFoundException, IOException;
 	
 	/**
 	 * Pull the files from the Network. If there is a conflict, the system duplicates 
@@ -76,4 +89,12 @@ public interface GitProtocol {
 	 * @return true if it is correctly created, false otherwise.
 	 */
 	public boolean leaveNetwork();
+
+	public ArrayList<Commit> get_local_commits(String repo_name);
+
+
+	public Repository get_local_repo(String repo_name);
+
+
+	public Repository get_remote_repo(String repo_name) throws Exception;
 }

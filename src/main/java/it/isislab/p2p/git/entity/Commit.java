@@ -42,7 +42,7 @@ public class Commit implements Serializable {
 
     @Override
     public String toString() {
-        String commit = "\n--------------------------------------------------------------------------------" + "\n🔹 Messaggio: " + this.getMessage()
+        String commit = "--------------------------------------------------------------------------------" + "\n🔹 Messaggio: " + this.getMessage()
                 + "\n--------------------------------------------------------------------------------" + "\nFile modificati:\n";
         for (Item item : this.getModified().values()) {
             commit += "\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes\n";

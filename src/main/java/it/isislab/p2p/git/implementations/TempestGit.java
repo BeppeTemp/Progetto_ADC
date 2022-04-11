@@ -1,6 +1,7 @@
 package it.isislab.p2p.git.implementations;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -8,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 
 import org.apache.commons.io.FileUtils;
 import org.beryx.textio.TextIO;
@@ -17,7 +20,10 @@ import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Generator;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
+import it.isislab.p2p.git.exceptions.NothingToPushException;
+import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
+import it.isislab.p2p.git.exceptions.RepositoryNotExist;
 import it.isislab.p2p.git.interfaces.GitProtocol;
 
 import net.tomp2p.dht.FutureGet;
@@ -61,6 +67,7 @@ public class TempestGit implements GitProtocol {
 
 	@Override
 	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws Exception {
+
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 		if (futureGet.isSuccess()) {
@@ -68,7 +75,7 @@ public class TempestGit implements GitProtocol {
 				throw new RepositoryAlreadyExistException();
 			}
 
-			Repository repository = new Repository(repo_name, peer.p2pId() ,new HashSet<PeerAddress>(), start_dir);
+			Repository repository = new Repository(repo_name, peer.p2pId(), new HashSet<PeerAddress>(), start_dir);
 			repository.add_peer(dht.peer().peerAddress());
 
 			dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
@@ -76,6 +83,7 @@ public class TempestGit implements GitProtocol {
 
 			return true;
 		}
+
 		return false;
 	}
 
@@ -149,18 +157,17 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public String push(String repo_name) {
-		try {
-			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+	public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExist, ClassNotFoundException, IOException {
 
-			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
+		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+
+		if (futureGet.isSuccess() && !futureGet.isEmpty()) {
+			if (this.local_commits.get(repo_name).size() != 0) {
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
 				if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
 
-					// Aggiorna la repository con i commit
 					for (Commit commit : this.local_commits.get(repo_name)) {
-						System.out.println("Commit msg: " + commit.getMessage() + " elaborato");
 						this.local_repos.get(repo_name).commit(commit);
 					}
 					this.local_commits.get(repo_name).clear();
@@ -168,14 +175,15 @@ public class TempestGit implements GitProtocol {
 
 					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
 
-					return "\nPush sulla repository \"" + repo_name + "\" completato ✅\n";
+					return true;
 				} else
-					return "\n⚠️ Stato della repository cambiato, eseguire prima un Pull. \n";
+				throw new RepoStateChangedException();
+			} else {
+				throw new NothingToPushException();
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+		} else {
+			throw new RepositoryNotExist();
 		}
-		return "\nErrore nella fase di push ❌\n";
 	}
 
 	@Override
@@ -280,7 +288,7 @@ public class TempestGit implements GitProtocol {
 					dht.put(Number160.createHash(repo_name)).data(new Data(remote_repo)).start().awaitUninterruptibly();
 				}
 
-				//! rimuove solo al possessore
+				// ! rimuove solo al possessore
 				File repo_dir = this.my_repos.get(repo_name).toFile();
 				for (File file : repo_dir.listFiles()) {
 					file.delete();
@@ -307,14 +315,20 @@ public class TempestGit implements GitProtocol {
 		return true;
 	}
 
+	@Override
 	public ArrayList<Commit> get_local_commits(String repo_name) {
-		return this.local_commits.get(repo_name);
+		if (this.local_commits.get(repo_name) != null)
+			if (this.local_commits.get(repo_name).size() != 0)
+				return this.local_commits.get(repo_name);
+		return null;
 	}
 
+	@Override
 	public Repository get_local_repo(String repo_name) {
 		return this.local_repos.get(repo_name);
 	}
 
+	@Override
 	public Repository get_remote_repo(String repo_name) throws Exception {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
