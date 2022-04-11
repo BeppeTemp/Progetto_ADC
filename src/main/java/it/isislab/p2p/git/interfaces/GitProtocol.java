@@ -11,10 +11,14 @@ import it.isislab.p2p.git.entity.Repository;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
-import it.isislab.p2p.git.exceptions.RepositoryNotExist;
+import it.isislab.p2p.git.exceptions.RepositoryNotExistException;
 
 public interface GitProtocol {
-
+	
+	public Repository get_local_repo(String repo_name);
+	public Repository get_remote_repo(String repo_name) throws Exception;
+	public ArrayList<Commit> get_local_commits(String repo_name);
+	
 	/**
 	 * ------------------ MODIFICATO DALLO STUDENTE ------------------
 	 * Crea una repository a partire da una directory aggiungendo tutti i file presenti,
@@ -25,7 +29,7 @@ public interface GitProtocol {
 	 * @return vero se creata correttamente, falso negli altri casi.
 	 * @throws RepositoryAlreadyExistException in caso si cerchi di creare una reopsitory esistente
 	 */
-	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws Exception;
+	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws RepositoryAlreadyExistException;
 	
 	/**
 	 * ------------------ DEFINITO DALLO STUDENTE ------------------
@@ -33,8 +37,9 @@ public interface GitProtocol {
 	 * @param repo_name una Stringa, contenente il nome della repository.
 	 * @param clone_dir un Path in cui verrà salvata la repository clonata.
 	 * @return vero se creata correttamente, falso negli altri casi.
+	 * @throws Exception
 	 */
-	public boolean clone(String repo_name, Path clone_dir);
+	public boolean clone(String repo_name, Path clone_dir) throws Exception;
 	
 	/**
 	 * ------------------ MODIFICATO DALLO STUDENTE ------------------
@@ -50,7 +55,7 @@ public interface GitProtocol {
 	 * @param msg una Stringa, contenente il messaggio del commit.
 	 * @return vero, se correttamente committato, falso negli altri casi.
 	 */
-	public boolean commit(String _repo_name, String msg);
+	public Commit commit(String _repo_name, String msg);
 	
 	/**
 	 * ------------------ MODIFICATO DALLO STUDENTE ------------------
@@ -60,11 +65,11 @@ public interface GitProtocol {
 	 * @return una Stringa, contenten un messaggi operativo.
 	 * @throws RepoStateChangedException
 	 * @throws NothingToPushException
-	 * @throws RepositoryNotExist
+	 * @throws RepositoryNotExistException
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public Boolean push(String _repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExist, ClassNotFoundException, IOException;
+	public Boolean push(String _repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException, ClassNotFoundException, IOException;
 	
 	/**
 	 * Pull the files from the Network. If there is a conflict, the system duplicates 
@@ -80,21 +85,6 @@ public interface GitProtocol {
 	 * @param repo_name una Stringa, contenente il nome della repository.
 	 * @return true if it is correctly created, false otherwise.
 	 */
-	public boolean removeRepo(String repo_name);
-
-	/**
-	 * ------------------ DEFINED BY STUDENT ------------------
-	 * Clone an existing repository.
-	 * @param repo_name una Stringa, contenente il nome della repository.
-	 * @return true if it is correctly created, false otherwise.
-	 */
 	public boolean leaveNetwork();
 
-	public ArrayList<Commit> get_local_commits(String repo_name);
-
-
-	public Repository get_local_repo(String repo_name);
-
-
-	public Repository get_remote_repo(String repo_name) throws Exception;
 }

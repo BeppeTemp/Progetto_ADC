@@ -14,7 +14,7 @@ import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
-import it.isislab.p2p.git.exceptions.RepositoryNotExist;
+import it.isislab.p2p.git.exceptions.RepositoryNotExistException;
 import it.isislab.p2p.git.implementations.TempestGit;
 
 /**
@@ -86,10 +86,14 @@ public class Launcher {
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
 					String dir_clone = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Destination directory:");
 
-					if (peer.clone(repo_name, Paths.get(dir_clone)))
-						System.out.println("\nRepository \"" + repo_name + "\" clonata correttamente  ✅\n");
-					else
-						System.out.println("\nErrore nel clonare la repository ❌\n");
+					try {
+						if (peer.clone(repo_name, Paths.get(dir_clone)))
+							System.out.println("\nRepository \"" + repo_name + "\" clonata correttamente  ✅\n");
+						else
+							System.out.println("\nErrore nel clonare la repository ❌\n");
+					} catch (RepositoryNotExistException e) {
+						System.out.println("\nLa repository \"" + repo_name + "\" non esiste ❌\n");
+					}
 					break;
 
 				case 3:
@@ -108,7 +112,7 @@ public class Launcher {
 						System.out.println("--------------------------------------------------------------------------------");
 
 					} else
-						System.out.println("\nErrore nell'aggiunta dei file ❌\n");
+						System.out.println("\nErrore nell'aggiunta dei file, controllare la directory ❌\n");
 
 					break;
 
@@ -116,9 +120,11 @@ public class Launcher {
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
 					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷").read("Commit Message:");
 
-					if (peer.commit(repo_name, message)) {
+					Commit last_commit = peer.commit(repo_name, message);
+
+					if (last_commit != null) {
 						System.out.println("\nIl seguente commit è stato generato:");
-						System.out.println(peer.get_local_commits(repo_name).get(peer.get_local_commits(repo_name).size() - 1).toString());
+						System.out.println(last_commit.toString());
 						System.out.println("\nCommit sulla repository \"" + repo_name + "\" creato correttamente ✅\n");
 					} else
 						System.out.println("\nNessuna modifica trovata ❌\n");
@@ -141,7 +147,7 @@ public class Launcher {
 						System.out.println("\n⚠️ Stato della repository remota cambiato, necessario pull\n");
 					} catch (NothingToPushException e) {
 						System.out.println("\n⚠️ Nessun commit in coda\n");
-					} catch (RepositoryNotExist e) {
+					} catch (RepositoryNotExistException e) {
 						System.out.println("\nLa repository inserita non esiste ❌\n");
 					}
 					break;

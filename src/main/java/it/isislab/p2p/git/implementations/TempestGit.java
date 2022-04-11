@@ -10,11 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import javax.swing.plaf.nimbus.NimbusLookAndFeel;
-
 import org.apache.commons.io.FileUtils;
-import org.beryx.textio.TextIO;
-import org.beryx.textio.TextIoFactory;
 
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Generator;
@@ -23,7 +19,7 @@ import it.isislab.p2p.git.entity.Repository;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
-import it.isislab.p2p.git.exceptions.RepositoryNotExist;
+import it.isislab.p2p.git.exceptions.RepositoryNotExistException;
 import it.isislab.p2p.git.interfaces.GitProtocol;
 
 import net.tomp2p.dht.FutureGet;
@@ -66,52 +62,85 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws Exception {
+	public Repository get_local_repo(String repo_name) {
+		return this.local_repos.get(repo_name);
+	}
+
+	@Override
+	public Repository get_remote_repo(String repo_name) throws Exception {
+		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+
+		if (futureGet.isSuccess() && !futureGet.isEmpty())
+			return (Repository) futureGet.dataMap().values().iterator().next().object();
+		return null;
+	}
+
+	@Override
+	public ArrayList<Commit> get_local_commits(String repo_name) {
+		if (this.local_commits.get(repo_name) != null)
+			if (this.local_commits.get(repo_name).size() != 0)
+				return this.local_commits.get(repo_name);
+		return null;
+	}
+
+	@Override
+	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws RepositoryAlreadyExistException {
 
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-		if (futureGet.isSuccess()) {
-			if (!futureGet.isEmpty()) {
-				throw new RepositoryAlreadyExistException();
+		try {
+			if (futureGet.isSuccess()) {
+				if (!futureGet.isEmpty()) {
+					throw new RepositoryAlreadyExistException();
+				}
+
+				Repository repository = new Repository(repo_name, peer.p2pId(), new HashSet<PeerAddress>(), start_dir);
+				repository.add_peer(dht.peer().peerAddress());
+
+				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
+				this.clone(repo_name, repo_dir);
+
+				return true;
 			}
-
-			Repository repository = new Repository(repo_name, peer.p2pId(), new HashSet<PeerAddress>(), start_dir);
-			repository.add_peer(dht.peer().peerAddress());
-
-			dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
-			this.clone(repo_name, repo_dir);
-
-			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (RepositoryNotExistException e) {
+			e.printStackTrace();
 		}
 
 		return false;
 	}
 
 	@Override
-	public boolean clone(String repo_name, Path clone_dir) {
-		try {
-			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+	public boolean clone(String repo_name, Path clone_dir) throws RepositoryNotExistException {
 
-			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-				this.local_repos.put(remote_repo.getName(), remote_repo);
+		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-				for (Item file : this.local_repos.get(repo_name).getItems().values()) {
-					File dest = new File(clone_dir.toString(), file.getName());
-					FileUtils.writeByteArrayToFile(dest, file.getBytes());
+		if (futureGet.isSuccess())
+			if (!futureGet.isEmpty()) {
+				try {
+					Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+					this.local_repos.put(remote_repo.getName(), remote_repo);
+
+					for (Item file : this.local_repos.get(repo_name).getItems().values()) {
+						File dest = new File(clone_dir.toString(), file.getName());
+						FileUtils.writeByteArrayToFile(dest, file.getBytes());
+					}
+
+					this.local_repos.get(repo_name).add_peer(dht.peer().peerAddress());
+					this.local_commits.put(repo_name, new ArrayList<Commit>());
+					this.my_repos.put(repo_name, clone_dir);
+
+					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
+
+					return true;
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-
-				this.local_repos.get(repo_name).add_peer(dht.peer().peerAddress());
-				this.local_commits.put(repo_name, new ArrayList<Commit>());
-				this.my_repos.put(repo_name, clone_dir);
-
-				dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
-
-				return true;
+			} else {
+				throw new RepositoryNotExistException();
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+
 		return false;
 	}
 
@@ -120,13 +149,17 @@ public class TempestGit implements GitProtocol {
 		this.local_added.clear();
 
 		try {
-			for (File file : add_dir.toFile().listFiles()) {
-				if (!this.local_repos.get(repo_name).contains(file)) {
-					this.local_added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+			File files[] = add_dir.toFile().listFiles();
+			if (files != null) {
+				for (File file : files) {
+					if (!this.local_repos.get(repo_name).contains(file)) {
+						this.local_added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+					}
 				}
-			}
 
-			return this.local_added.values();
+				return this.local_added.values();
+			} else
+				return null;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -134,7 +167,7 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public boolean commit(String repo_name, String msg) {
+	public Commit commit(String repo_name, String msg) {
 		try {
 			File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
@@ -145,45 +178,58 @@ public class TempestGit implements GitProtocol {
 			}
 
 			if (modified.size() == 0 && this.local_added.size() == 0)
-				return false;
+				return null;
 			else
 				this.local_commits.get(repo_name).add(new Commit(msg, modified, this.local_added));
 
-			return true;
+			return this.local_commits.get(repo_name).get(this.local_commits.get(repo_name).size() - 1);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return false;
+		return null;
 	}
 
 	@Override
-	public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExist, ClassNotFoundException, IOException {
+	public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException {
 
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-		if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-			if (this.local_commits.get(repo_name).size() != 0) {
-				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+		if (futureGet.isSuccess())
+			if (!futureGet.isEmpty()) {
+				if (this.local_commits.get(repo_name).size() != 0) {
+					Repository remote_repo = null;
 
-				if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
-
-					for (Commit commit : this.local_commits.get(repo_name)) {
-						this.local_repos.get(repo_name).commit(commit);
+					try {
+						remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+					} catch (ClassNotFoundException | IOException e) {
+						e.printStackTrace();
 					}
-					this.local_commits.get(repo_name).clear();
-					this.local_added.clear();
 
-					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
+					if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
 
-					return true;
-				} else
-				throw new RepoStateChangedException();
+						for (Commit commit : this.local_commits.get(repo_name)) {
+							this.local_repos.get(repo_name).commit(commit);
+						}
+						this.local_commits.get(repo_name).clear();
+						this.local_added.clear();
+
+						try {
+							dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+						return true;
+					} else
+						throw new RepoStateChangedException();
+
+				} else {
+					throw new NothingToPushException();
+				}
 			} else {
-				throw new NothingToPushException();
+				throw new RepositoryNotExistException();
 			}
-		} else {
-			throw new RepositoryNotExist();
-		}
+		return false;
 	}
 
 	@Override
@@ -192,77 +238,24 @@ public class TempestGit implements GitProtocol {
 			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-				// Recupero la repository dalla DHT
 				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
 
 				HashMap<String, Item> modified = new HashMap<String, Item>();
 
-				// Se lo stato della repository è cambiata dal mio ultimo pull
 				if (remote_repo.getVersion() > local_repos.get(repo_name).getVersion()) {
 					File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
-					// Identifico tutti i file da me modificati fino a questo momento
+					// Modified files
 					for (File file : local_files) {
 						if (this.local_repos.get(repo_name).isModified(file))
 							modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
 					}
 
-					// Se i file da me modificati sono diversi da quelli contenuti in remoto
-					for (Item item : modified.values()) {
-						if (remote_repo.isModified(item)) {
-							// Ne genero due copie
-							File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
-							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
-
-							File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
-							File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
-							local_modified.renameTo(local_dest);
-
-							System.out.println("\n⚠️ Identificato conflitto sul file: " + item.getName() + "\n");
-
-							// Attendo che l'utente risolve il conflitto
-							TextIO textIO = TextIoFactory.getTextIO();
-							while (local_files.length != this.my_repos.get(repo_name).toFile().listFiles().length)
-								textIO.newCharInputReader().read("Eliminare uno dei due file per risolvere il conflitto, dopodichè dare invio.");
-
-							String message = textIO.newStringInputReader().withDefaultValue("Risolto conflitto sul file: " + item.getName()).read("Messaggio del nuovo commit:");
-							this.commit(repo_name, message);
-
-							// Non faccio nient'altro in quanto sarà il commit a identificarli nuovamente
-							// come modificati
-						}
-					}
+					check_Conflit(repo_name, remote_repo, modified, local_files);
 				}
-
 				this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
 
-				// TODO possibile refactoring di questa parte (Se funge)
-				// Per ogni fine della repositore remota, non modificato da me, ne aggiorno lo
-				// stato in quella locale
-				for (Item item : remote_repo.getItems().values()) {
-					// Se l'item è contenuto localmente
-					if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
-						// e non è uno dei modificati
-						if (!modified.containsKey(item.getName())) {
-							// ne aggiorno il contenuto sia nella repository locale
-							this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
-
-							// che come file
-							File need_update = new File(this.my_repos.get(repo_name).toString(), item.getName());
-							FileUtils.writeByteArrayToFile(need_update, item.getBytes());
-						}
-					} else {
-						// Se non è contenuto localemente lo aggiungo alla repository locale
-						this.local_repos.get(repo_name).getItems().put(item.getName(), item);
-
-						// e come file
-						File need_add = new File(this.my_repos.get(repo_name).toString(), item.getName());
-						FileUtils.writeByteArrayToFile(need_add, item.getBytes());
-					}
-				}
-
-				// Se non ho modificato nessun file tutti verranno aggiornati o aggiunti e le
-				// repository locale e remota saranno sincronizzate
+				update_repo(repo_name, remote_repo, modified);
 			}
 			return "\nPull della repository \"" + repo_name + "\" completato ✅\n";
 		} catch (Exception e) {
@@ -271,7 +264,44 @@ public class TempestGit implements GitProtocol {
 		return "\nErrore nella fase di pull ❌\n";
 	}
 
+	private void check_Conflit(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws IOException {
+		for (Item item : modified.values()) {
+			if (remote_repo.isModified(item)) {
+
+				File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
+				FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
+
+				File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
+				File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
+				local_modified.renameTo(local_dest);
+			}
+		}
+	}
+
+	private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) throws IOException {
+		for (Item item : remote_repo.getItems().values()) {
+			if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
+				if (!modified.containsKey(item.getName())) {
+					this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
+				}
+			} else {
+				this.local_repos.get(repo_name).getItems().put(item.getName(), item);
+			}
+
+			File need_add = new File(this.my_repos.get(repo_name).toString(), item.getName());
+			FileUtils.writeByteArrayToFile(need_add, item.getBytes());
+		}
+	}
+
 	@Override
+	public boolean leaveNetwork() {
+		for (String repo_name : this.my_repos.keySet()) {
+			this.removeRepo(repo_name);
+		}
+		dht.peer().announceShutdown().start().awaitUninterruptibly();
+		return true;
+	}
+
 	public boolean removeRepo(String repo_name) {
 		try {
 			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
@@ -306,34 +336,4 @@ public class TempestGit implements GitProtocol {
 		return false;
 	}
 
-	@Override
-	public boolean leaveNetwork() {
-		for (String repo_name : this.my_repos.keySet()) {
-			this.removeRepo(repo_name);
-		}
-		dht.peer().announceShutdown().start().awaitUninterruptibly();
-		return true;
-	}
-
-	@Override
-	public ArrayList<Commit> get_local_commits(String repo_name) {
-		if (this.local_commits.get(repo_name) != null)
-			if (this.local_commits.get(repo_name).size() != 0)
-				return this.local_commits.get(repo_name);
-		return null;
-	}
-
-	@Override
-	public Repository get_local_repo(String repo_name) {
-		return this.local_repos.get(repo_name);
-	}
-
-	@Override
-	public Repository get_remote_repo(String repo_name) throws Exception {
-		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
-
-		if (futureGet.isSuccess() && !futureGet.isEmpty())
-			return (Repository) futureGet.dataMap().values().iterator().next().object();
-		return null;
-	}
 }

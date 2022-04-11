@@ -31,12 +31,14 @@ public class Repository implements Serializable {
         this.version = this.commits.size();
 
         File[] files = start_dir.toFile().listFiles();
-        for (File file : files)
-            try {
-                this.items.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if (files != null) {
+            for (File file : files)
+                try {
+                    this.items.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        }
     }
 
     // Aggiorna la repository in base a un commit
