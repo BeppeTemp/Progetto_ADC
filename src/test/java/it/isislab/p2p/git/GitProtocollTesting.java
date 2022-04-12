@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import it.isislab.p2p.git.entity.Generator;
+import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -59,20 +60,90 @@ public class GitProtocollTesting {
     }
 
     // -----------------------------------------------------
-    // Create repository tests
+    // Get local repository tests
     // -----------------------------------------------------
+
+    @Test
+    void testCase_GetLocalRepository(@TempDir Path temp_dir) {
+        try {
+            peer_one.createRepository("get_repo", start_files, temp_dir);
+
+            assertNotNull(peer_one.get_local_repo("get_repo"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    void testCase_GetLocalRepositoryNoExist(@TempDir Path temp_dir) {
+        try {
+            assertNull(peer_one.get_local_repo("get_repo_no_exist"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    // -----------------------------------------------------
+    // Get remote repository tests
+    // -----------------------------------------------------
+
+    @Test
+    void testCase_GetRemoteRepository(@TempDir Path temp_dir) {
+        try {
+            peer_one.createRepository("get_repo_remote", start_files, temp_dir);
+
+            assertNotNull(peer_one.get_remote_repo("get_repo_remote"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    void testCase_GetRemotelRepositoryNoExist(@TempDir Path temp_dir) {
+        try {
+            assertNull(peer_one.get_remote_repo("get_repo_remote_no_exist"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    // -----------------------------------------------------
+    // Get local commits
+    // -----------------------------------------------------
+    @Test
+    void testCase_GetLocalCommits(@TempDir Path temp_dir) {
+        try {
+            peer_one.createRepository("get_commits", start_files, temp_dir);
+
+            peer_one.addFilesToRepository("get_commits", add_files);
+
+            peer_one.commit("get_commits", "Create a commit");
+
+            assertNotNull(peer_one.get_local_commits("get_commits"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    void testCase_GetLocalCommitsNoCommit(@TempDir Path temp_dir) {
+        try {
+            assertNull(peer_one.get_local_commits("get_commits_no_commit"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 
     // -----------------------------------------------------
     // Create repository tests
     // -----------------------------------------------------
 
-    // -----------------------------------------------------
-    // Create repository tests
-    // -----------------------------------------------------
-
-    // -----------------------------------------------------
-    // Create repository tests
-    // -----------------------------------------------------
     @Test
     void testCase_CreateRepository(@TempDir Path temp_dir) {
         try {
@@ -312,19 +383,79 @@ public class GitProtocollTesting {
     // Pull tests
     // -----------------------------------------------------
 
-    // @Test
-    // void testCase_Pull(@TempDir Path temp_dir) {
-    // try {
-    // peer_one.createRepository("empty_commit", start_files, temp_dir);
+    @Test
+    void testCase_Pull(@TempDir Path temp_dir_one, @TempDir Path temp_dir_two) {
+        try {
+            peer_one.createRepository("repo_pull", start_files, temp_dir_one);
 
-    // assertFalse(peer_three.commit("empty_commit", "Empty Commit Message"));
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // fail();
-    // }
-    // }
+            peer_two.clone("repo_pull", temp_dir_two);
 
-    // -----------------------------------------------------
-    // Push tests
-    // -----------------------------------------------------
+            peer_one.addFilesToRepository("repo_pull", add_files);
+
+            peer_one.commit("repo_pull", "added files");
+
+            peer_one.push("repo_pull");
+
+            assertTrue(peer_two.pull("repo_pull"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    void testCase_Pull_TestFile(@TempDir Path temp_dir_one, @TempDir Path temp_dir_two) {
+        try {
+            peer_one.createRepository("repo_pull_test_file", start_files, temp_dir_one);
+
+            peer_two.clone("repo_pull_test_file", temp_dir_two);
+
+            peer_one.addFilesToRepository("repo_pull_test_file", add_files);
+
+            peer_one.commit("repo_pull_test_file", "added files");
+
+            peer_one.push("repo_pull_test_file");
+
+            // TODO controllare questo pull necessario
+            peer_one.pull("repo_pull_test_file");
+
+            peer_two.pull("repo_pull_test_file");
+
+            check_files(temp_dir_one, temp_dir_two);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+
+    @Test
+    void testCase_PullRepositoryNotExist() {
+        assertThrows(RepositoryNotExistException.class, () -> peer_one.pull("pull_not_exist"));
+    }
+
+    @Test
+    void testCase_PullConflit(@TempDir Path temp_dir_one, @TempDir Path temp_dir_two) {
+        try {
+            peer_one.createRepository("conflit_repo", start_files, temp_dir_one);
+
+            peer_two.clone("conflit_repo", temp_dir_two);
+
+            peer_one.addFilesToRepository("conflit_repo", add_files);
+
+            peer_one.commit("conflit_repo", "added files");
+
+            peer_one.push("conflit_repo");
+
+            File file = new File(temp_dir_two + "/test_file_one.txt");
+            FileWriter fw = new FileWriter(file.getAbsoluteFile());
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write("modification");
+            bw.close();
+
+            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 }

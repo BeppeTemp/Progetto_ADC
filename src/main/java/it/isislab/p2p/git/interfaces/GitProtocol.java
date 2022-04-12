@@ -8,6 +8,7 @@ import java.util.Collection;
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
+import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -69,15 +70,17 @@ public interface GitProtocol {
 	 * @throws IOException
 	 * @throws ClassNotFoundException
 	 */
-	public Boolean push(String _repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException, ClassNotFoundException, IOException;
+	public Boolean push(String _repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException;
 	
 	/**
 	 * Pull the files from the Network. If there is a conflict, the system duplicates 
 	 * the files and the user should manually fix the conflict.
 	 * @param _repo_name _repo_name a String, the name of the repository.
 	 * @return a String, operation message.
+	 * @throws RepositoryNotExistException
+	 * @throws GeneratedConflitException
 	 */
-	public String pull(String _repo_name);
+	public Boolean pull(String _repo_name) throws RepositoryNotExistException, GeneratedConflitException;
 
 	/**
 	 * ------------------ DEFINED BY STUDENT ------------------

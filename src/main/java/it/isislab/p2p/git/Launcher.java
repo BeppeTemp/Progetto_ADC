@@ -11,6 +11,7 @@ import org.kohsuke.args4j.Option;
 
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
+import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -154,7 +155,17 @@ public class Launcher {
 
 				case 6:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
-					System.out.println(peer.pull(repo_name));
+					try {
+						if (peer.pull(repo_name)) {
+							System.out.println("\nPull della repository \"" + repo_name + "\" creato correttamente ✅\n");
+						} else {
+							System.out.println("\nErrore nalla fase di pull ❌\n");
+						}
+					} catch (RepositoryNotExistException e) {
+						System.out.println("\nLa repository inserita non esiste ❌\n");
+					} catch (GeneratedConflitException e) {
+						System.out.println("\nÈ stato generato un conflitto durante il pull ❌\n");
+					}
 					break;
 
 				case 7:

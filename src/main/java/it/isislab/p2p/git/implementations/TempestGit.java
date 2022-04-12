@@ -16,6 +16,7 @@ import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Generator;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
+import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -233,52 +234,67 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public String pull(String repo_name) {
-		try {
-			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException {
+		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-			if (futureGet.isSuccess() && !futureGet.isEmpty()) {
-				Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+		if (futureGet.isSuccess())
+			if (!futureGet.isEmpty()) {
+				Repository remote_repo = null;
+
+				try {
+					remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+				} catch (ClassNotFoundException | IOException e) {
+					e.printStackTrace();
+				}
 
 				HashMap<String, Item> modified = new HashMap<String, Item>();
 
 				if (remote_repo.getVersion() > local_repos.get(repo_name).getVersion()) {
 					File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
-					// Modified files
 					for (File file : local_files) {
 						if (this.local_repos.get(repo_name).isModified(file))
-							modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+							try {
+								modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
 					}
 
 					check_Conflit(repo_name, remote_repo, modified, local_files);
 				}
 				this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
-
+				
 				update_repo(repo_name, remote_repo, modified);
+				return true;
+			} else {
+				throw new RepositoryNotExistException();
 			}
-			return "\nPull della repository \"" + repo_name + "\" completato ✅\n";
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return "\nErrore nella fase di pull ❌\n";
+		return false;
 	}
 
-	private void check_Conflit(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws IOException {
+	private void check_Conflit(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflitException {
 		for (Item item : modified.values()) {
 			if (remote_repo.isModified(item)) {
 
 				File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
-				FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
+
+				try {
+					FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 
 				File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
 				File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
 				local_modified.renameTo(local_dest);
+
+				throw new GeneratedConflitException();
 			}
 		}
 	}
 
-	private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) throws IOException {
+	private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
 		for (Item item : remote_repo.getItems().values()) {
 			if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
 				if (!modified.containsKey(item.getName())) {
@@ -289,7 +305,12 @@ public class TempestGit implements GitProtocol {
 			}
 
 			File need_add = new File(this.my_repos.get(repo_name).toString(), item.getName());
-			FileUtils.writeByteArrayToFile(need_add, item.getBytes());
+
+			try {
+				FileUtils.writeByteArrayToFile(need_add, item.getBytes());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
