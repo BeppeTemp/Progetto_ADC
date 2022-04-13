@@ -164,7 +164,7 @@ public class Launcher {
 					} catch (RepositoryNotExistException e) {
 						System.out.println("\nLa repository inserita non esiste ❌\n");
 					} catch (GeneratedConflitException e) {
-						System.out.println("\nÈ stato generato un conflitto durante il pull ❌\n");
+						System.out.println("\n⚠️ È stato generato un conflitto risolverlo prima di continuare\n");
 					}
 					break;
 

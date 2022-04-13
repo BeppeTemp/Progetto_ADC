@@ -8,6 +8,7 @@ import java.util.Collection;
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
+import it.isislab.p2p.git.exceptions.ConflictsNotResolved;
 import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
@@ -79,8 +80,9 @@ public interface GitProtocol {
 	 * @return a String, operation message.
 	 * @throws RepositoryNotExistException
 	 * @throws GeneratedConflitException
+	 * @throws ConflictsNotResolved
 	 */
-	public Boolean pull(String _repo_name) throws RepositoryNotExistException, GeneratedConflitException;
+	public Boolean pull(String _repo_name) throws RepositoryNotExistException, GeneratedConflitException, ConflictsNotResolved;
 
 	/**
 	 * ------------------ DEFINED BY STUDENT ------------------

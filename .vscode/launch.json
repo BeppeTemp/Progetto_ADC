@@ -22,14 +22,14 @@
             "type": "java",
             "name": "Peer_One",
             "request": "launch",
-            "mainClass": "it.isislab.p2p.git.Tester",
+            "mainClass": "it.isislab.p2p.git.Launcher",
             "args": "-m 192.168.0.230 -id 0",
         },
         {
             "type": "java",
             "name": "Peer_Two",
             "request": "launch",
-            "mainClass": "it.isislab.p2p.git.Tester",
+            "mainClass": "it.isislab.p2p.git.Launcher",
             "args": "-m 192.168.0.230 -id 1",
         }
     ]

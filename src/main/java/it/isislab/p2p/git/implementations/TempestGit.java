@@ -16,6 +16,7 @@ import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Generator;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
+import it.isislab.p2p.git.exceptions.ConflictsNotResolved;
 import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
@@ -42,12 +43,14 @@ public class TempestGit implements GitProtocol {
 	private HashMap<String, Item> local_added;
 	private HashMap<String, ArrayList<Commit>> local_commits;
 	private HashMap<String, Path> my_repos;
+	private HashMap<String, ArrayList<String>> conflicts;
 
 	public TempestGit(int _id, String _master_peer) throws Exception {
 		this.local_repos = new HashMap<String, Repository>();
 		this.local_added = new HashMap<String, Item>();
 		this.local_commits = new HashMap<String, ArrayList<Commit>>();
 		this.my_repos = new HashMap<String, Path>();
+		this.conflicts = new HashMap<String, ArrayList<String>>();
 
 		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
 		dht = new PeerBuilderDHT(peer).start();
@@ -131,6 +134,7 @@ public class TempestGit implements GitProtocol {
 					this.local_repos.get(repo_name).add_peer(dht.peer().peerAddress());
 					this.local_commits.put(repo_name, new ArrayList<Commit>());
 					this.my_repos.put(repo_name, clone_dir);
+					this.conflicts.put(repo_name, new ArrayList<String>());
 
 					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
 
@@ -234,7 +238,7 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException {
+	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException, ConflictsNotResolved {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 		if (futureGet.isSuccess())
@@ -261,11 +265,19 @@ public class TempestGit implements GitProtocol {
 							}
 					}
 
-					check_Conflit(repo_name, remote_repo, modified, local_files);
+					find_Conflict(repo_name, remote_repo, modified, local_files);
 				}
-				this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
-				
-				update_repo(repo_name, remote_repo, modified);
+
+				if (this.check_Conflicts(repo_name)) {
+					this.commit(repo_name, "Messaggino conflittuale");
+
+					this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
+
+					update_repo(repo_name, remote_repo, modified);
+				} else {
+					throw new ConflictsNotResolved();
+				}
+
 				return true;
 			} else {
 				throw new RepositoryNotExistException();
@@ -273,28 +285,38 @@ public class TempestGit implements GitProtocol {
 		return false;
 	}
 
-	private void check_Conflit(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflitException {
+	private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflitException {
+		Boolean find_conflit = false;
+
 		for (Item item : modified.values()) {
-			if (remote_repo.isModified(item)) {
+			if (this.conflicts.get(repo_name) != null)
+				if (!this.conflicts.get(repo_name).contains(item.getName()))
+					if (remote_repo.isModified(item)) {
 
-				File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
+						File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
 
-				try {
-					FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+						try {
+							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 
-				File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
-				File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
-				local_modified.renameTo(local_dest);
+						File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
+						File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
+						local_modified.renameTo(local_dest);
 
-				throw new GeneratedConflitException();
-			}
+						this.conflicts.get(repo_name).add(item.getName());
+						find_conflit = true;
+					}
 		}
+
+		if (find_conflit)
+			throw new GeneratedConflitException();
 	}
 
 	private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
+		this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
+
 		for (Item item : remote_repo.getItems().values()) {
 			if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
 				if (!modified.containsKey(item.getName())) {
@@ -314,11 +336,25 @@ public class TempestGit implements GitProtocol {
 		}
 	}
 
+	private Boolean check_Conflicts(String repo_name) {
+		if (this.conflicts.get(repo_name) != null)
+			for (String file_name : this.conflicts.get(repo_name)) {
+				File remote_version = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + file_name);
+				File local_version = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + file_name);
+
+				if (remote_version.exists() || local_version.exists()) {
+					return false;
+				}
+			}
+		return true;
+	}
+
 	@Override
 	public boolean leaveNetwork() {
 		for (String repo_name : this.my_repos.keySet()) {
 			this.removeRepo(repo_name);
 		}
+		this.my_repos.clear();
 		dht.peer().announceShutdown().start().awaitUninterruptibly();
 		return true;
 	}
@@ -339,16 +375,15 @@ public class TempestGit implements GitProtocol {
 					dht.put(Number160.createHash(repo_name)).data(new Data(remote_repo)).start().awaitUninterruptibly();
 				}
 
-				// ! rimuove solo al possessore
 				File repo_dir = this.my_repos.get(repo_name).toFile();
-				for (File file : repo_dir.listFiles()) {
-					file.delete();
-				}
+				if (repo_dir.listFiles() != null)
+					for (File file : repo_dir.listFiles()) {
+						file.delete();
+					}
 				repo_dir.delete();
 
 				this.local_repos.remove(repo_name);
 				this.local_commits.remove(repo_name);
-				this.my_repos.remove(repo_name);
 				return true;
 			}
 		} catch (Exception e) {
