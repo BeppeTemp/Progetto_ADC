@@ -271,9 +271,9 @@ public class TempestGit implements GitProtocol {
 				if (this.check_Conflicts(repo_name)) {
 					this.commit(repo_name, "Messaggino conflittuale");
 
-					this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
-
 					update_repo(repo_name, remote_repo, modified);
+
+					this.conflicts.get(repo_name).clear();
 				} else {
 					throw new ConflictsNotResolved();
 				}
@@ -318,20 +318,22 @@ public class TempestGit implements GitProtocol {
 		this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
 
 		for (Item item : remote_repo.getItems().values()) {
-			if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
-				if (!modified.containsKey(item.getName())) {
-					this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
+			if (!this.conflicts.get(repo_name).contains(item.getName())) {
+				if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
+					if (!modified.containsKey(item.getName())) {
+						this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
+					}
+				} else {
+					this.local_repos.get(repo_name).getItems().put(item.getName(), item);
 				}
-			} else {
-				this.local_repos.get(repo_name).getItems().put(item.getName(), item);
-			}
 
-			File need_add = new File(this.my_repos.get(repo_name).toString(), item.getName());
+				File override = new File(this.my_repos.get(repo_name).toString(), item.getName());
 
-			try {
-				FileUtils.writeByteArrayToFile(need_add, item.getBytes());
-			} catch (IOException e) {
-				e.printStackTrace();
+				try {
+					FileUtils.writeByteArrayToFile(override, item.getBytes());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}

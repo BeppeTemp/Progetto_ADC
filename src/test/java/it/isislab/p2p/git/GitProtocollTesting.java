@@ -488,7 +488,7 @@ public class GitProtocollTesting {
             File file = new File(temp_dir_two + "/test_file_one.txt");
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
-            bw.append(" ehi ma quella è una papera ?!");
+            bw.write("Ma qui prima c'era una papera 😢");
             bw.close();
 
             assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_resolved_test_file"));
@@ -506,6 +506,14 @@ public class GitProtocollTesting {
             peer_one.pull("conflit_repo_resolved_test_file");
 
             check_files(temp_dir_one, conflict_files);
+
+            peer_one.commit("conflit_repo_resolved_test_file", "all_resolved");
+
+            peer_one.push("conflit_repo_resolved_test_file");
+
+            peer_two.pull("conflit_repo_resolved_test_file");
+
+            check_files(temp_dir_two, conflict_files);
         } catch (Exception e) {
             e.printStackTrace();
         }
