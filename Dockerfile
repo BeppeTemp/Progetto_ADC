@@ -11,6 +11,7 @@ FROM openjdk:8-jre-alpine
 WORKDIR /root
 ENV MASTERIP=127.0.0.1
 ENV ID=0
+
 COPY --from=mvn /maven-jar/target/TempestGit-jar-with-dependencies.jar /root
 
 CMD /usr/bin/java -jar TempestGit-jar-with-dependencies.jar -m $MASTERIP -id $ID
