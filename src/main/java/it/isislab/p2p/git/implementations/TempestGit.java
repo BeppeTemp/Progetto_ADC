@@ -61,7 +61,7 @@ public class TempestGit implements GitProtocol {
 		if (fb.isSuccess()) {
 			peer.discover().peerAddress(fb.bootstrapTo().iterator().next()).start().awaitUninterruptibly();
 		} else {
-			throw new Exception("Error in master peer bootstrap.");
+			throw new Exception("Errore nella fase di bootstrap del peer master.");
 		}
 	}
 
@@ -71,11 +71,15 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public Repository get_remote_repo(String repo_name) throws Exception {
+	public Repository get_remote_repo(String repo_name) {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 		if (futureGet.isSuccess() && !futureGet.isEmpty())
-			return (Repository) futureGet.dataMap().values().iterator().next().object();
+			try {
+				return (Repository) futureGet.dataMap().values().iterator().next().object();
+			} catch (ClassNotFoundException | IOException e) {
+				e.printStackTrace();
+			}
 		return null;
 	}
 
@@ -102,6 +106,8 @@ public class TempestGit implements GitProtocol {
 				repository.add_peer(dht.peer().peerAddress());
 
 				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
+
+				// Clona la repository appena creata nella cartella di destinazione
 				this.clone(repo_name, repo_dir);
 
 				return true;
@@ -150,25 +156,29 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public Collection<Item> addFilesToRepository(String repo_name, Path add_dir) {
+	public Collection<Item> addFilesToRepository(String repo_name, Path add_dir) throws RepositoryNotExistException {
 		this.local_added.clear();
 
-		try {
+		if (this.local_repos.get(repo_name) != null) {
+
 			File files[] = add_dir.toFile().listFiles();
 			if (files != null) {
 				for (File file : files) {
 					if (!this.local_repos.get(repo_name).contains(file)) {
-						this.local_added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+						try {
+							this.local_added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
 				}
 
 				return this.local_added.values();
 			} else
 				return null;
-		} catch (Exception e) {
-			e.printStackTrace();
+		} else {
+			throw new RepositoryNotExistException();
 		}
-		return null;
 	}
 
 	@Override
@@ -253,9 +263,11 @@ public class TempestGit implements GitProtocol {
 
 				HashMap<String, Item> modified = new HashMap<String, Item>();
 
+				// Se la versione della repository è cambiata
 				if (remote_repo.getVersion() > local_repos.get(repo_name).getVersion()) {
 					File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
+					// Identifico tutti i file modificati
 					for (File file : local_files) {
 						if (this.local_repos.get(repo_name).isModified(file))
 							try {
@@ -269,7 +281,15 @@ public class TempestGit implements GitProtocol {
 				}
 
 				if (this.check_Conflicts(repo_name)) {
-					this.commit(repo_name, "Messaggino conflittuale");
+					String message = "Risolti conflitti sui seguenti file: ";
+
+					for (String file_name : this.conflicts.get(repo_name)) {
+						message += file_name + ", ";
+					}
+					message = message.substring(0, message.length() - 2);
+					message += ".";
+
+					this.commit(repo_name, message);
 
 					update_repo(repo_name, remote_repo, modified);
 
@@ -285,14 +305,16 @@ public class TempestGit implements GitProtocol {
 		return false;
 	}
 
+	// Identifica i conflitti tra i file modificati in locale e anche in remoto
 	private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflitException {
 		Boolean find_conflit = false;
 
 		for (Item item : modified.values()) {
 			if (this.conflicts.get(repo_name) != null)
+				// Se il file modificato in esame non è già stato identificato come conflitto
 				if (!this.conflicts.get(repo_name).contains(item.getName()))
+					// Ed è stato modificato anche in remoto
 					if (remote_repo.isModified(item)) {
-
 						File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
 
 						try {
@@ -314,12 +336,17 @@ public class TempestGit implements GitProtocol {
 			throw new GeneratedConflitException();
 	}
 
+	// Aggiorna lo stato della repository locale rispetto a quella remota
 	private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
 		this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
 
 		for (Item item : remote_repo.getItems().values()) {
+			// Se non c'è un conflitto su quell'item
 			if (!this.conflicts.get(repo_name).contains(item.getName())) {
+
+				// Se è già contenuto nella repository locale
 				if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
+					// Ed non è uno dei modificati
 					if (!modified.containsKey(item.getName())) {
 						this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
 					}
@@ -327,8 +354,8 @@ public class TempestGit implements GitProtocol {
 					this.local_repos.get(repo_name).getItems().put(item.getName(), item);
 				}
 
+				// Sovrascrivi o crei i file modificati o aggiunti
 				File override = new File(this.my_repos.get(repo_name).toString(), item.getName());
-
 				try {
 					FileUtils.writeByteArrayToFile(override, item.getBytes());
 				} catch (IOException e) {
@@ -338,6 +365,7 @@ public class TempestGit implements GitProtocol {
 		}
 	}
 
+	// Controlla che tutti i conflitti identificati siano stati risolti
 	private Boolean check_Conflicts(String repo_name) {
 		if (this.conflicts.get(repo_name) != null)
 			for (String file_name : this.conflicts.get(repo_name)) {
@@ -361,6 +389,7 @@ public class TempestGit implements GitProtocol {
 		return true;
 	}
 
+	// Rimuove la repository dalla DHT e localemente solo al nodo in disconnessione
 	public boolean removeRepo(String repo_name) {
 		try {
 			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
@@ -393,5 +422,4 @@ public class TempestGit implements GitProtocol {
 		}
 		return false;
 	}
-
 }

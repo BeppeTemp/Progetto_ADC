@@ -11,6 +11,7 @@ import org.kohsuke.args4j.Option;
 
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
+import it.isislab.p2p.git.exceptions.ConflictsNotResolved;
 import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
@@ -27,7 +28,7 @@ import it.isislab.p2p.git.implementations.TempestGit;
  */
 public class Launcher {
 
-	@Option(name = "-m", aliases = "--masterip", usage = "Ip del master peer", required = true)
+	@Option(name = "-m", aliases = "--masterip", usage = "IP del master peer", required = true)
 	private static String master;
 
 	@Option(name = "-id", aliases = "--identifierpeer", usage = "L'identificativo univoco del peer", required = true)
@@ -61,15 +62,15 @@ public class Launcher {
 			boolean flag = true;
 			while (flag) {
 				printMenu();
-				int option = textIO.newIntInputReader().withMaxVal(11).withMinVal(1).read("Option");
+				int option = textIO.newIntInputReader().withMaxVal(11).withMinVal(1).read("Scelta");
 
 				String repo_name;
 
 				switch (option) {
 				case 1:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
-					String dir_init = textIO.newStringInputReader().withDefaultValue("src/test/resources/start_files").read("Init directory:");
-					String dest_dir = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Destination directory:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
+					String dir_init = textIO.newStringInputReader().withDefaultValue("src/test/resources/start_files").read("Directory di inizializzazione:");
+					String dest_dir = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Directory di destinazione:");
 
 					try {
 						if (peer.createRepository(repo_name, Paths.get(dir_init), Paths.get(dest_dir))) {
@@ -84,8 +85,8 @@ public class Launcher {
 					break;
 
 				case 2:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
-					String dir_clone = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Destination directory:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
+					String dir_clone = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Directory di destinazione:");
 
 					try {
 						if (peer.clone(repo_name, Paths.get(dir_clone)))
@@ -98,28 +99,32 @@ public class Launcher {
 					break;
 
 				case 3:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					String add_dir = textIO.newStringInputReader().withDefaultValue("src/test/resources/add_files").read("Directory da aggiungere:");
 
-					Collection<Item> file_added = peer.addFilesToRepository(repo_name, Paths.get(add_dir));
+					try {
+						Collection<Item> file_added = peer.addFilesToRepository(repo_name, Paths.get(add_dir));
 
-					if (file_added != null) {
-						System.out.println("\nOperazione andata a buon fine ✅");
-						System.out.println("--------------------------------------------------------------------------------");
-						System.out.println("Sono stati aggiunti " + file_added.size() + " file: ");
-						for (Item item : file_added) {
-							System.out.println("\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
-						}
-						System.out.println("--------------------------------------------------------------------------------");
+						if (file_added != null) {
+							System.out.println("\nOperazione andata a buon fine ✅");
+							System.out.println("--------------------------------------------------------------------------------");
+							System.out.println("Sono stati aggiunti " + file_added.size() + " file: ");
+							for (Item item : file_added) {
+								System.out.println("\t🔸 " + item.getName() + " - " + item.getChecksum() + " - " + item.getBytes().length + " bytes");
+							}
+							System.out.println("--------------------------------------------------------------------------------");
 
-					} else
-						System.out.println("\nErrore nell'aggiunta dei file, controllare la directory ❌\n");
+						} else
+							System.out.println("\nErrore nell'aggiunta dei file, controllare la directory ❌\n");
+					} catch (RepositoryNotExistException e) {
+						System.out.println("\nLa repository \"" + repo_name + "\" non esiste ❌\n");
+					}
 
 					break;
 
 				case 4:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
-					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷").read("Commit Message:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
+					String message = textIO.newStringInputReader().withDefaultValue("Ho cambiato qualcosa 🤷").read("Messaggio di commit:");
 
 					Commit last_commit = peer.commit(repo_name, message);
 
@@ -132,7 +137,7 @@ public class Launcher {
 					break;
 
 				case 5:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 
 					if (peer.get_local_commits(repo_name) != null) {
 						System.out.println("\nI seguenti commit saranno elaborati: ");
@@ -154,7 +159,7 @@ public class Launcher {
 					break;
 
 				case 6:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					try {
 						if (peer.pull(repo_name)) {
 							System.out.println("\nPull della repository \"" + repo_name + "\" creato correttamente ✅\n");
@@ -165,11 +170,13 @@ public class Launcher {
 						System.out.println("\nLa repository inserita non esiste ❌\n");
 					} catch (GeneratedConflitException e) {
 						System.out.println("\n⚠️ È stato generato un conflitto risolverlo prima di continuare\n");
+					} catch (ConflictsNotResolved e) {
+						System.out.println("\n⚠️ Risolvere prima tutti i conflitti per continuare (Rimuovere etichette REMOTE e LOCAL)\n");
 					}
 					break;
 
 				case 7:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					if (peer.removeRepo(repo_name))
 						System.out.println("\nRepository \"" + repo_name + "\" correttamente eliminata ✅\n");
 					else
@@ -177,17 +184,17 @@ public class Launcher {
 					break;
 
 				case 8:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					System.out.println(peer.get_remote_repo(repo_name).toString());
 					break;
 
 				case 9:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					System.out.println(peer.get_local_repo(repo_name).toString());
 					break;
 
 				case 10:
-					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Repo Name:");
+					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					if (peer.get_local_commits(repo_name) != null)
 						for (Commit commit : peer.get_local_commits(repo_name)) {
 							System.out.println(commit.toString());

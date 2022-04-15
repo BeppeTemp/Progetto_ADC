@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,7 +13,6 @@ import java.nio.file.Path;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -221,6 +219,15 @@ public class GitProtocollTesting {
     }
 
     @Test
+    void testCase_AddFilesNotExistingRepository(@TempDir Path temp_dir) {
+        try {
+            assertThrows(RepositoryNotExistException.class, () -> peer_one.addFilesToRepository("add_repo_Not_Exist", add_files));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     void testCase_AddFiles_FileTest(@TempDir Path temp_dir) {
         try {
             peer_one.createRepository("add_repo_files", start_files, temp_dir);
@@ -397,7 +404,6 @@ public class GitProtocollTesting {
 
             peer_one.push("repo_pull_test_file");
 
-            // TODO controllare questo pull necessario
             peer_one.pull("repo_pull_test_file");
 
             peer_two.pull("repo_pull_test_file");
@@ -547,7 +553,7 @@ public class GitProtocollTesting {
     }
 
     @Test
-    void testCase_PullConflictNotResolved_WhitAnothreConflict(@TempDir Path temp_dir_one, @TempDir Path temp_dir_two) {
+    void testCase_PullConflictNotResolved_WhithAnotherConflict(@TempDir Path temp_dir_one, @TempDir Path temp_dir_two) {
         try {
             peer_one.createRepository("conflit_repo_not_resolved_with_another", start_files, temp_dir_one);
 
