@@ -1,16 +1,16 @@
-FROM alpine/git
-WORKDIR /app
+FROM alpine/git as git
+WORKDIR /last-version
 RUN git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021
 
-FROM maven:3.8.4-openjdk-17
-WORKDIR /app
-COPY --from=0 /app/giuseppe-arienzo_adc_2021 /app
+FROM maven:3.8.4-openjdk-17 as mvn
+WORKDIR /maven-jar
+COPY --from=git /last-version/giuseppe-arienzo_adc_2021 /maven-jar
 RUN mvn package
 
 FROM openjdk:8-jre-alpine
-WORKDIR /app
+WORKDIR /root
 ENV MASTERIP=127.0.0.1
 ENV ID=0
-COPY --from=1 /app/target/giuseppe-arienzo_adc_2021-1.0-SNAPSHOT.jar /app
+COPY --from=mvn /maven-jar/target/TempestGit-jar-with-dependencies.jar /root
 
-CMD /usr/bin/java -jar giuseppe-arienzo_adc_2021-1.0-SNAPSHOT.jar -m $MASTERIP -id $ID
+CMD /usr/bin/java -jar TempestGit-jar-with-dependencies.jar -m $MASTERIP -id $ID
