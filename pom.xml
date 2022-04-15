@@ -24,7 +24,7 @@
 		<dependency>
 			<groupId>net.tomp2p</groupId>
 			<artifactId>tomp2p-all</artifactId>
-			<version>5.0-Beta8</version>
+			<version>5.0-Beta7</version>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
