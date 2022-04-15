@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import it.isislab.p2p.git.entity.Generator;
-import it.isislab.p2p.git.exceptions.ConflictsNotResolved;
+import it.isislab.p2p.git.exceptions.ConflictsNotResolvedException;
 import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
@@ -546,7 +546,7 @@ public class GitProtocollTesting {
 
             assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_not_resolved"));
 
-            assertThrows(ConflictsNotResolved.class, () -> peer_two.pull("conflit_repo_not_resolved"));
+            assertThrows(ConflictsNotResolvedException.class, () -> peer_two.pull("conflit_repo_not_resolved"));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -581,7 +581,7 @@ public class GitProtocollTesting {
 
             assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
 
-            assertThrows(ConflictsNotResolved.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
+            assertThrows(ConflictsNotResolvedException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -16,7 +16,7 @@ import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Generator;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
-import it.isislab.p2p.git.exceptions.ConflictsNotResolved;
+import it.isislab.p2p.git.exceptions.ConflictsNotResolvedException;
 import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
@@ -248,7 +248,7 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException, ConflictsNotResolved {
+	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException, ConflictsNotResolvedException {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 		if (futureGet.isSuccess())
@@ -295,7 +295,7 @@ public class TempestGit implements GitProtocol {
 
 					this.conflicts.get(repo_name).clear();
 				} else {
-					throw new ConflictsNotResolved();
+					throw new ConflictsNotResolvedException();
 				}
 
 				return true;

@@ -11,7 +11,7 @@ import org.kohsuke.args4j.Option;
 
 import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
-import it.isislab.p2p.git.exceptions.ConflictsNotResolved;
+import it.isislab.p2p.git.exceptions.ConflictsNotResolvedException;
 import it.isislab.p2p.git.exceptions.GeneratedConflitException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
@@ -170,7 +170,7 @@ public class Launcher {
 						System.out.println("\nLa repository inserita non esiste ❌\n");
 					} catch (GeneratedConflitException e) {
 						System.out.println("\n⚠️ È stato generato un conflitto risolverlo prima di continuare\n");
-					} catch (ConflictsNotResolved e) {
+					} catch (ConflictsNotResolvedException e) {
 						System.out.println("\n⚠️ Risolvere prima tutti i conflitti per continuare (Rimuovere etichette REMOTE e LOCAL)\n");
 					}
 					break;
