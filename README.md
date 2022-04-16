@@ -170,28 +170,28 @@ Il metodo permette di aggiungere file a una repository, più nel dettaglio viene
 Il metodo permette di creare un commit, sulla base dei file modificati e dei file aggiunti.
 
 ```Java
-  @Override
-	public Commit commit(String repo_name, String msg) {
-		try {
-			File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
+@Override
+public Commit commit(String repo_name, String msg) {
+  try {
+    File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
-			HashMap<String, Item> modified = new HashMap<String, Item>();
-			for (File file : local_files) {
-				if (this.local_repos.get(repo_name).isModified(file))
-					modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
-			}
+    HashMap<String, Item> modified = new HashMap<String, Item>();
+    for (File file : local_files) {
+      if (this.local_repos.get(repo_name).isModified(file))
+        modified.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+    }
 
-			if (modified.size() == 0 && this.local_added.size() == 0)
-				return null;
-			else
-				this.local_commits.get(repo_name).add(new Commit(msg, modified, this.local_added));
+    if (modified.size() == 0 && this.local_added.size() == 0)
+      return null;
+    else
+      this.local_commits.get(repo_name).add(new Commit(msg, modified, this.local_added));
 
-			return this.local_commits.get(repo_name).get(this.local_commits.get(repo_name).size() - 1);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
+    return this.local_commits.get(repo_name).get(this.local_commits.get(repo_name).size() - 1);
+  } catch (Exception e) {
+    e.printStackTrace();
+  }
+  return null;
+}
 ```
 
 ### Push
@@ -199,178 +199,178 @@ Il metodo permette di creare un commit, sulla base dei file modificati e dei fil
 Il metodo permette di fare il push di tutti i commit in coda localmente sulla repository, più nel dettaglio una volta ottenuta la repository remota presente sulla DHT (se non esiste si ritorna una **RepositoryNotExistException**) viene controllato se ci sono commit in coda, se non ci sono viene lanciata una **NothingToPushException** in caso contrario l'esecuzione procede e si controlla se la versione della repository locale è diverso da quello della repository remota, se cosi è vuol dire che dall'ultimo pull lo stato di quest'ultima e cambiata, viene quindi lanciata una **RepoStateChangedException** indicando che deve prima essere eseguito un pull, infine nel caso in cui tutte le condizioni sussistano all'operazione di pull si procede invocando il metodo **commit** della repository locale che ne aggiorna lo stato in base a ognuno dei commit in coda, infine la repository locale viene inserita nella DHT sovrascrivendo quella remota.
 
 ```Java
-	@Override
-	public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException {
+@Override
+public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException {
 
-		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+  FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-		if (futureGet.isSuccess())
-			if (!futureGet.isEmpty()) {
-				if (this.local_commits.get(repo_name).size() != 0) {
-					Repository remote_repo = null;
+  if (futureGet.isSuccess())
+    if (!futureGet.isEmpty()) {
+      if (this.local_commits.get(repo_name).size() != 0) {
+        Repository remote_repo = null;
 
-					try {
-						remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-					} catch (ClassNotFoundException | IOException e) {
-						e.printStackTrace();
-					}
+        try {
+          remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+        } catch (ClassNotFoundException | IOException e) {
+          e.printStackTrace();
+        }
 
-					if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
+        if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
 
-						for (Commit commit : this.local_commits.get(repo_name)) {
-							this.local_repos.get(repo_name).commit(commit);
-						}
-						this.local_commits.get(repo_name).clear();
-						this.local_added.clear();
+          for (Commit commit : this.local_commits.get(repo_name)) {
+            this.local_repos.get(repo_name).commit(commit);
+          }
+          this.local_commits.get(repo_name).clear();
+          this.local_added.clear();
 
-						try {
-							dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
+          try {
+            dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
 
-						return true;
-					} else
-						throw new RepoStateChangedException();
+          return true;
+        } else
+          throw new RepoStateChangedException();
 
-				} else {
-					throw new NothingToPushException();
-				}
-			} else {
-				throw new RepositoryNotExistException();
-			}
-		return false;
-	}
+      } else {
+        throw new NothingToPushException();
+      }
+    } else {
+      throw new RepositoryNotExistException();
+    }
+  return false;
+}
 ```
 
 ### Pull
 
 ```Java
-	@Override
-	public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException {
+@Override
+public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException {
 
-		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+  FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-		if (futureGet.isSuccess())
-			if (!futureGet.isEmpty()) {
-				if (this.local_commits.get(repo_name).size() != 0) {
-					Repository remote_repo = null;
+  if (futureGet.isSuccess())
+    if (!futureGet.isEmpty()) {
+      if (this.local_commits.get(repo_name).size() != 0) {
+        Repository remote_repo = null;
 
-					try {
-						remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-					} catch (ClassNotFoundException | IOException e) {
-						e.printStackTrace();
-					}
+        try {
+          remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+        } catch (ClassNotFoundException | IOException e) {
+          e.printStackTrace();
+        }
 
-					if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
+        if (remote_repo.getVersion() == this.local_repos.get(repo_name).getVersion()) {
 
-						for (Commit commit : this.local_commits.get(repo_name)) {
-							this.local_repos.get(repo_name).commit(commit);
-						}
-						this.local_commits.get(repo_name).clear();
-						this.local_added.clear();
+          for (Commit commit : this.local_commits.get(repo_name)) {
+            this.local_repos.get(repo_name).commit(commit);
+          }
+          this.local_commits.get(repo_name).clear();
+          this.local_added.clear();
 
-						try {
-							dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
+          try {
+            dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
 
-						return true;
-					} else
-						throw new RepoStateChangedException();
+          return true;
+        } else
+          throw new RepoStateChangedException();
 
-				} else {
-					throw new NothingToPushException();
-				}
-			} else {
-				throw new RepositoryNotExistException();
-			}
-		return false;
-	}
+      } else {
+        throw new NothingToPushException();
+      }
+    } else {
+      throw new RepositoryNotExistException();
+    }
+  return false;
+}
 ```
 
 #### Find_Conflict
 
 ```Java
-	private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflictException {
-		Boolean find_conflit = false;
+private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflictException {
+  Boolean find_conflit = false;
 
-		for (Item item : modified.values()) {
-			if (this.conflicts.get(repo_name) != null)
-				// Se il file modificato in esame non è già stato identificato come conflitto
-				if (!this.conflicts.get(repo_name).contains(item.getName()))
-					// Ed è stato modificato anche in remoto
-					if (remote_repo.isModified(item)) {
-						File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
+  for (Item item : modified.values()) {
+    if (this.conflicts.get(repo_name) != null)
+      // Se il file modificato in esame non è già stato identificato come conflitto
+      if (!this.conflicts.get(repo_name).contains(item.getName()))
+        // Ed è stato modificato anche in remoto
+        if (remote_repo.isModified(item)) {
+          File remote_dest = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + item.getName());
 
-						try {
-							FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
+          try {
+            FileUtils.writeByteArrayToFile(remote_dest, remote_repo.getItems().get(item.getName()).getBytes());
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
 
-						File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
-						File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
-						local_modified.renameTo(local_dest);
+          File local_dest = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + item.getName());
+          File local_modified = new File(this.my_repos.get(repo_name).toString(), item.getName());
+          local_modified.renameTo(local_dest);
 
-						this.conflicts.get(repo_name).add(item.getName());
-						find_conflit = true;
-					}
-		}
+          this.conflicts.get(repo_name).add(item.getName());
+          find_conflit = true;
+        }
+  }
 
-		if (find_conflit)
-			throw new GeneratedConflictException();
-	}
+  if (find_conflit)
+    throw new GeneratedConflictException();
+}
 ```
 
 #### Update_Repo
 
 ```Java
-	private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
-		this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
+private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
+  this.local_repos.get(repo_name).setVersion(remote_repo.getVersion());
 
-		for (Item item : remote_repo.getItems().values()) {
-			// Se non c'è un conflitto su quell'item
-			if (!this.conflicts.get(repo_name).contains(item.getName())) {
+  for (Item item : remote_repo.getItems().values()) {
+    // Se non c'è un conflitto su quell'item
+    if (!this.conflicts.get(repo_name).contains(item.getName())) {
 
-				// Se è già contenuto nella repository locale
-				if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
-					// Ed non è uno dei modificati
-					if (!modified.containsKey(item.getName())) {
-						this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
-					}
-				} else {
-					this.local_repos.get(repo_name).getItems().put(item.getName(), item);
-				}
+      // Se è già contenuto nella repository locale
+      if (this.local_repos.get(repo_name).getItems().containsKey(item.getName())) {
+        // Ed non è uno dei modificati
+        if (!modified.containsKey(item.getName())) {
+          this.local_repos.get(repo_name).getItems().get(item.getName()).setBytes(item.getBytes());
+        }
+      } else {
+        this.local_repos.get(repo_name).getItems().put(item.getName(), item);
+      }
 
-				// Sovrascrivi o crei i file modificati o aggiunti
-				File override = new File(this.my_repos.get(repo_name).toString(), item.getName());
-				try {
-					FileUtils.writeByteArrayToFile(override, item.getBytes());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
+      // Sovrascrivi o crei i file modificati o aggiunti
+      File override = new File(this.my_repos.get(repo_name).toString(), item.getName());
+      try {
+        FileUtils.writeByteArrayToFile(override, item.getBytes());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+}
 ```
 
 #### Check_Conflicts
 
 ```Java
-  private Boolean check_Conflicts(String repo_name) {
-		if (this.conflicts.get(repo_name) != null)
-			for (String file_name : this.conflicts.get(repo_name)) {
-				File remote_version = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + file_name);
-				File local_version = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + file_name);
+private Boolean check_Conflicts(String repo_name) {
+  if (this.conflicts.get(repo_name) != null)
+    for (String file_name : this.conflicts.get(repo_name)) {
+      File remote_version = new File(this.my_repos.get(repo_name).toString(), "/REMOTE-" + file_name);
+      File local_version = new File(this.my_repos.get(repo_name).toString(), "/LOCAL-" + file_name);
 
-				if (remote_version.exists() || local_version.exists()) {
-					return false;
-				}
-			}
-		return true;
-	}
+      if (remote_version.exists() || local_version.exists()) {
+        return false;
+      }
+    }
+  return true;
+}
 ```
 
 Infine abbiamo la classe [Launcher](src/main/java/it/isislab/p2p/git/Launcher.java) che ho lo scopo di fungere da interfaccia e lanciare l'applicazione.
