@@ -17,7 +17,7 @@ import it.isislab.p2p.git.entity.Generator;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
 import it.isislab.p2p.git.exceptions.ConflictsNotResolvedException;
-import it.isislab.p2p.git.exceptions.GeneratedConflitException;
+import it.isislab.p2p.git.exceptions.GeneratedConflictException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -248,7 +248,7 @@ public class TempestGit implements GitProtocol {
 	}
 
 	@Override
-	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException, ConflictsNotResolvedException {
+	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflictException, ConflictsNotResolvedException {
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
 		if (futureGet.isSuccess())
@@ -306,7 +306,7 @@ public class TempestGit implements GitProtocol {
 	}
 
 	// Identifica i conflitti tra i file modificati in locale e anche in remoto
-	private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflitException {
+	private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflictException {
 		Boolean find_conflit = false;
 
 		for (Item item : modified.values()) {
@@ -333,7 +333,7 @@ public class TempestGit implements GitProtocol {
 		}
 
 		if (find_conflit)
-			throw new GeneratedConflitException();
+			throw new GeneratedConflictException();
 	}
 
 	// Aggiorna lo stato della repository locale rispetto a quella remota

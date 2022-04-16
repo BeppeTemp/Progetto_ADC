@@ -18,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import it.isislab.p2p.git.entity.Generator;
 import it.isislab.p2p.git.exceptions.ConflictsNotResolvedException;
-import it.isislab.p2p.git.exceptions.GeneratedConflitException;
+import it.isislab.p2p.git.exceptions.GeneratedConflictException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -438,7 +438,7 @@ public class GitProtocollTesting {
             bw.write("modification");
             bw.close();
 
-            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo"));
+            assertThrows(GeneratedConflictException.class, () -> peer_two.pull("conflit_repo"));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -464,7 +464,7 @@ public class GitProtocollTesting {
             bw.write("modification");
             bw.close();
 
-            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_resolved"));
+            assertThrows(GeneratedConflictException.class, () -> peer_two.pull("conflit_repo_resolved"));
 
             File mainteined_file = new File(temp_dir_two + "/test_file_one.txt");
             File remote_file = new File(temp_dir_two + "/REMOTE-test_file_one.txt");
@@ -497,7 +497,7 @@ public class GitProtocollTesting {
             bw.write("Ma qui prima c'era una papera 😢");
             bw.close();
 
-            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_resolved_test_file"));
+            assertThrows(GeneratedConflictException.class, () -> peer_two.pull("conflit_repo_resolved_test_file"));
 
             File mainteined_file = new File(temp_dir_two + "/test_file_one.txt");
             File remote_file = new File(temp_dir_two + "/REMOTE-test_file_one.txt");
@@ -544,7 +544,7 @@ public class GitProtocollTesting {
             bw.write("modification");
             bw.close();
 
-            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_not_resolved"));
+            assertThrows(GeneratedConflictException.class, () -> peer_two.pull("conflit_repo_not_resolved"));
 
             assertThrows(ConflictsNotResolvedException.class, () -> peer_two.pull("conflit_repo_not_resolved"));
         } catch (Exception e) {
@@ -571,7 +571,7 @@ public class GitProtocollTesting {
             bw_one.write("modification");
             bw_one.close();
 
-            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
+            assertThrows(GeneratedConflictException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
 
             File file_two = new File(temp_dir_two + "/test_file_two.txt");
             FileWriter fw_two = new FileWriter(file_two.getAbsoluteFile());
@@ -579,7 +579,7 @@ public class GitProtocollTesting {
             bw_two.write("modification");
             bw_two.close();
 
-            assertThrows(GeneratedConflitException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
+            assertThrows(GeneratedConflictException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
 
             assertThrows(ConflictsNotResolvedException.class, () -> peer_two.pull("conflit_repo_not_resolved_with_another"));
         } catch (Exception e) {

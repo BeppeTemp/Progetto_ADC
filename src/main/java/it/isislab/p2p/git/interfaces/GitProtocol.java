@@ -8,7 +8,7 @@ import it.isislab.p2p.git.entity.Commit;
 import it.isislab.p2p.git.entity.Item;
 import it.isislab.p2p.git.entity.Repository;
 import it.isislab.p2p.git.exceptions.ConflictsNotResolvedException;
-import it.isislab.p2p.git.exceptions.GeneratedConflitException;
+import it.isislab.p2p.git.exceptions.GeneratedConflictException;
 import it.isislab.p2p.git.exceptions.NothingToPushException;
 import it.isislab.p2p.git.exceptions.RepoStateChangedException;
 import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
@@ -112,11 +112,11 @@ public interface GitProtocol {
 	 *         altri casi.
 	 * @throws RepositoryNotExistException se la repository su cui viene richiesto
 	 *                                     il pull non esiste.
-	 * @throws GeneratedConflitException   se il pull genera un conflitto.
+	 * @throws GeneratedConflictException   se il pull genera un conflitto.
 	 * @throws ConflictsNotResolvedException        se i conflitti identificati non sono
 	 *                                     stati risolti.
 	 */
-	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflitException, ConflictsNotResolvedException;
+	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflictException, ConflictsNotResolvedException;
 
 	/**
 	 * Disconette il peer della DHT, eliminando tutte le repository e i file locali
