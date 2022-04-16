@@ -61,36 +61,35 @@ Le **API** aggiornate sono presenti [qui](src/main/java/it/isislab/p2p/git/inter
 Che si occupa della creazione di una nuova repository. Il metodo prima tenta di recuperare la repository che si sta cercando di creare dalla rete, se questa esiste viene lanciata una **RepositoryAlreadyExistException** nel caso contrario invece si procede alla creazione di un nuovo oggetto repository e all'iscrizione al topic del peer creante, infine la repository viene caricata sulla DHT e lanciato il metodo clone.
 
 ```Java
-	@Override
-	public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws RepositoryAlreadyExistException {
+@Override
+public boolean createRepository(String repo_name, Path start_dir, Path repo_dir) throws RepositoryAlreadyExistException {
 
-		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+  FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-		try {
-			if (futureGet.isSuccess()) {
-				if (!futureGet.isEmpty()) {
-					throw new RepositoryAlreadyExistException();
-				}
+  try {
+    if (futureGet.isSuccess()) {
+      if (!futureGet.isEmpty()) {
+        throw new RepositoryAlreadyExistException();
+      }
 
-				Repository repository = new Repository(repo_name, peer.p2pId(), new HashSet<PeerAddress>(), start_dir);
-				repository.add_peer(dht.peer().peerAddress());
+      Repository repository = new Repository(repo_name, peer.p2pId(), new HashSet<PeerAddress>(), start_dir);
+      repository.add_peer(dht.peer().peerAddress());
 
-				dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
+      dht.put(Number160.createHash(repo_name)).data(new Data(repository)).start().awaitUninterruptibly();
 
-				// Clona la repository appena creata nella cartella di destinazione
-				this.clone(repo_name, repo_dir);
+      // Clona la repository appena creata nella cartella di destinazione
+      this.clone(repo_name, repo_dir);
 
-				return true;
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (RepositoryNotExistException e) {
-			e.printStackTrace();
-		}
+      return true;
+    }
+  } catch (IOException e) {
+    e.printStackTrace();
+  } catch (RepositoryNotExistException e) {
+    e.printStackTrace();
+  }
 
-		return false;
-	}
-
+  return false;
+}
 ```
 
 ### Clone
@@ -98,39 +97,39 @@ Che si occupa della creazione di una nuova repository. Il metodo prima tenta di 
 Il metodo permette di clonare una repository esistente sulla rete, tale metodo viene anche utilizzato per effettuare la sottoscrizione ad un topic, anche in questo caso per prima cosa si cerca di ottenere la repository richiesta dalla DHT, se la richiesta ha successo la repository viene scaricata localmente e il peer iscritto, in caso contrario viene lanciata l'eccezione **RepositoryNotExistException**.
 
 ```Java
-	@Override
-	public boolean clone(String repo_name, Path clone_dir) throws RepositoryNotExistException {
+@Override
+public boolean clone(String repo_name, Path clone_dir) throws RepositoryNotExistException {
 
-		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
+  FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
-		if (futureGet.isSuccess())
-			if (!futureGet.isEmpty()) {
-				try {
-					Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
-					this.local_repos.put(remote_repo.getName(), remote_repo);
+  if (futureGet.isSuccess())
+    if (!futureGet.isEmpty()) {
+      try {
+        Repository remote_repo = (Repository) futureGet.dataMap().values().iterator().next().object();
+        this.local_repos.put(remote_repo.getName(), remote_repo);
 
-					for (Item file : this.local_repos.get(repo_name).getItems().values()) {
-						File dest = new File(clone_dir.toString(), file.getName());
-						FileUtils.writeByteArrayToFile(dest, file.getBytes());
-					}
+        for (Item file : this.local_repos.get(repo_name).getItems().values()) {
+          File dest = new File(clone_dir.toString(), file.getName());
+          FileUtils.writeByteArrayToFile(dest, file.getBytes());
+        }
 
-					this.local_repos.get(repo_name).add_peer(dht.peer().peerAddress());
-					this.local_commits.put(repo_name, new ArrayList<Commit>());
-					this.my_repos.put(repo_name, clone_dir);
-					this.conflicts.put(repo_name, new ArrayList<String>());
+        this.local_repos.get(repo_name).add_peer(dht.peer().peerAddress());
+        this.local_commits.put(repo_name, new ArrayList<Commit>());
+        this.my_repos.put(repo_name, clone_dir);
+        this.conflicts.put(repo_name, new ArrayList<String>());
 
-					dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
+        dht.put(Number160.createHash(repo_name)).data(new Data(this.local_repos.get(repo_name))).start().awaitUninterruptibly();
 
-					return true;
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			} else {
-				throw new RepositoryNotExistException();
-			}
+        return true;
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    } else {
+      throw new RepositoryNotExistException();
+    }
 
-		return false;
-	}
+  return false;
+}
 ```
 
 ### Add_File_To_Repository
@@ -138,31 +137,31 @@ Il metodo permette di clonare una repository esistente sulla rete, tale metodo v
 Il metodo permette di aggiungere file a una repository, più nel dettaglio viene la directory data viene scansionata alla ricerca di file non contenuti nella repository locale, una volta identificati i tali file vengono inseriti all'interno di una HashMap in modo che possano essere inseriti nel successivo commit, per poi pusharli successivamente all'interno della repository.
 
 ```Java
-  @Override
-	public Collection<Item> addFilesToRepository(String repo_name, Path add_dir) throws RepositoryNotExistException {
-		this.local_added.clear();
+@Override
+public Collection<Item> addFilesToRepository(String repo_name, Path add_dir) throws RepositoryNotExistException {
+  this.local_added.clear();
 
-		if (this.local_repos.get(repo_name) != null) {
+  if (this.local_repos.get(repo_name) != null) {
 
-			File files[] = add_dir.toFile().listFiles();
-			if (files != null) {
-				for (File file : files) {
-					if (!this.local_repos.get(repo_name).contains(file)) {
-						try {
-							this.local_added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-				}
+    File files[] = add_dir.toFile().listFiles();
+    if (files != null) {
+      for (File file : files) {
+        if (!this.local_repos.get(repo_name).contains(file)) {
+          try {
+            this.local_added.put(file.getName(), new Item(file.getName(), Generator.md5_Of_File(file), Files.readAllBytes(file.toPath())));
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+        }
+      }
 
-				return this.local_added.values();
-			} else
-				return null;
-		} else {
-			throw new RepositoryNotExistException();
-		}
-	}
+      return this.local_added.values();
+    } else
+      return null;
+  } else {
+    throw new RepositoryNotExistException();
+  }
+}
 ```
 
 ### Commit
