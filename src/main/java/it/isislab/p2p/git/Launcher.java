@@ -46,7 +46,7 @@ public class Launcher {
 		System.out.println();
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 		final CmdLineParser parser = new CmdLineParser(new Launcher());
 
 		try {
@@ -215,6 +215,8 @@ public class Launcher {
 			}
 		} catch (CmdLineException clEx) {
 			System.err.println("ERRORE: Impossibile completare il parsing delle opzioni: " + clEx);
+		} catch (Exception e1) {
+			e1.printStackTrace();
 		}
 	}
 }
