@@ -1,5 +1,7 @@
 # TempestGIT
 
+![Logo](logo.png)
+
 |            Studente             |   Progetto   |
 | :-----------------------------: | :----------: |
 | **Giuseppe Arienzo 0522501062** | Git Protocol |
