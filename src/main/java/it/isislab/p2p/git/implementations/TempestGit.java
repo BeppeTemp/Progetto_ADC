@@ -39,23 +39,27 @@ public class TempestGit implements GitProtocol {
 	final private PeerDHT dht;
 	final private int DEFAULT_MASTER_PORT = 4000;
 
+	private Path work_dir;
+
 	private HashMap<String, Repository> local_repos;
 	private HashMap<String, Item> local_added;
 	private HashMap<String, ArrayList<Commit>> local_commits;
 	private HashMap<String, Path> my_repos;
 	private HashMap<String, ArrayList<String>> conflicts;
 
-	public TempestGit(int _id, String _master_peer) throws Exception {
+	public TempestGit(int id, String master_peer, Path work_dir) throws Exception {
+		System.out.println("work_di: " + work_dir);
+		this.work_dir = work_dir;
 		this.local_repos = new HashMap<String, Repository>();
 		this.local_added = new HashMap<String, Item>();
 		this.local_commits = new HashMap<String, ArrayList<Commit>>();
 		this.my_repos = new HashMap<String, Path>();
 		this.conflicts = new HashMap<String, ArrayList<String>>();
 
-		peer = new PeerBuilder(Number160.createHash(_id)).ports(DEFAULT_MASTER_PORT + _id).start();
+		peer = new PeerBuilder(Number160.createHash(id)).ports(DEFAULT_MASTER_PORT + id).start();
 		dht = new PeerBuilderDHT(peer).start();
 
-		FutureBootstrap fb = peer.bootstrap().inetAddress(InetAddress.getByName(_master_peer)).ports(DEFAULT_MASTER_PORT).start();
+		FutureBootstrap fb = peer.bootstrap().inetAddress(InetAddress.getByName(master_peer)).ports(DEFAULT_MASTER_PORT).start();
 		fb.awaitUninterruptibly();
 
 		if (fb.isSuccess()) {
@@ -123,6 +127,7 @@ public class TempestGit implements GitProtocol {
 
 	@Override
 	public boolean clone(String repo_name, Path clone_dir) throws RepositoryNotExistException {
+		clone_dir = Path.of(this.work_dir.toString() + "/" + clone_dir.toString());
 
 		FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
@@ -184,6 +189,7 @@ public class TempestGit implements GitProtocol {
 	@Override
 	public Commit commit(String repo_name, String msg) {
 		try {
+			System.out.println("bho: " + this.my_repos.get(repo_name).toString());
 			File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
 			HashMap<String, Item> modified = new HashMap<String, Item>();
@@ -307,7 +313,7 @@ public class TempestGit implements GitProtocol {
 
 	// Identifica i conflitti tra i file modificati in locale e anche in remoto
 	private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflictException {
-		Boolean find_conflit = false;
+		Boolean find_conflict = false;
 
 		for (Item item : modified.values()) {
 			if (this.conflicts.get(repo_name) != null)
@@ -328,11 +334,11 @@ public class TempestGit implements GitProtocol {
 						local_modified.renameTo(local_dest);
 
 						this.conflicts.get(repo_name).add(item.getName());
-						find_conflit = true;
+						find_conflict = true;
 					}
 		}
 
-		if (find_conflit)
+		if (find_conflict)
 			throw new GeneratedConflictException();
 	}
 

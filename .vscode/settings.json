@@ -2,8 +2,12 @@
     "java.format.settings.url": ".vscode/java-formatter.xml",
     "java.configuration.updateBuildConfiguration": "automatic",
     "cSpell.words": [
+        "identifierpeer",
         "isislab",
         "istanziata",
-        "Uninterruptibly"
+        "MASTERIP",
+        "Remotel",
+        "Uninterruptibly",
+        "workdirectory"
     ]
 }

@@ -1,5 +1,6 @@
 package it.isislab.p2p.git;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 
@@ -34,6 +35,9 @@ public class Launcher {
 	@Option(name = "-id", aliases = "--identifierpeer", usage = "L'identificativo univoco del peer", required = true)
 	private static int id;
 
+	@Option(name = "-wd", aliases = "--workdirectory", usage = "Path in cui verranno conservate le repository", required = true)
+	private static String work_dir;
+
 	private static void printMenu() {
 		System.out.println("🍳 Menu: ");
 		System.out.println(" 1 - Crea una Repository");
@@ -55,7 +59,7 @@ public class Launcher {
 		try {
 			parser.parseArgument(args);
 			TextIO textIO = TextIoFactory.getTextIO();
-			TempestGit peer = new TempestGit(id, master);
+			TempestGit peer = new TempestGit(id, master, Path.of(work_dir));
 
 			System.out.println("\nPeer: " + id + " on Master: " + master + " \n");
 
@@ -70,7 +74,7 @@ public class Launcher {
 				case 1:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					String dir_init = textIO.newStringInputReader().withDefaultValue("src/test/resources/start_files").read("Directory di inizializzazione:");
-					String dest_dir = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Directory di destinazione:");
+					String dest_dir = textIO.newStringInputReader().withDefaultValue(repo_name).read("Directory di destinazione:");
 
 					try {
 						if (peer.createRepository(repo_name, Paths.get(dir_init), Paths.get(dest_dir))) {

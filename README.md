@@ -244,6 +244,10 @@ public Boolean push(String repo_name) throws RepoStateChangedException, NothingT
 
 ### Pull
 
+Il metodo permette di fare il pull delle repository remota, più nel dettaglio una volta ottenuta la repository (**RepositoryNotExistException** in caso non esista)remota il metodo verifica se la versione della repository locale è diversa da quella remota, se cosi è vengono identificati tutti i file modificati e viene lanciato il metodo **Find_Conflict**. 
+
+Se lo stato della repository non è invece cambiato si verifica se eventuali conflitti precedentemente identificati non sono stati risolti, se sono stati risolti si procede creando un commit che contiene i conflitti risolti e si invoca il metodo **Update_Repo**, in caso contrario viene lanciata l'eccezione **ConflictsNotResolvedException**.
+
 ```Java
 @Override
 public Boolean push(String repo_name) throws RepoStateChangedException, NothingToPushException, RepositoryNotExistException {
@@ -291,9 +295,11 @@ public Boolean push(String repo_name) throws RepoStateChangedException, NothingT
 
 #### Find_Conflict
 
+Si occupa di identificare i conflitti, il metodo verifica, per ogni file modificato non già identificato come conflitto, se è stato modificato anche sulla repository remota, se cosi ne vengono create due copie, una identificata con la dicitura **REMOTE** e una con la dicitura **LOCALE**, in modo che l'utente posa scegliere quale mantenere. Infine se è stato identificato anche solo un conflitto viene generata una  **GeneratedConflictException**.
+
 ```Java
 private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflictException {
-  Boolean find_conflit = false;
+  Boolean find_conflict = false;
 
   for (Item item : modified.values()) {
     if (this.conflicts.get(repo_name) != null)
@@ -314,16 +320,18 @@ private void find_Conflict(String repo_name, Repository remote_repo, HashMap<Str
           local_modified.renameTo(local_dest);
 
           this.conflicts.get(repo_name).add(item.getName());
-          find_conflit = true;
+          find_conflict = true;
         }
   }
 
-  if (find_conflit)
+  if (find_conflict)
     throw new GeneratedConflictException();
 }
 ```
 
 #### Update_Repo
+
+Si occupa di aggiornare i file locali in base allo stato della repository locale appena scaricata, più nel dettaglio il metodo scandisce i file presenti sulla repository remota su cui non sono stati identificati conflitti, a questo punto per ogni file, se modificato ne aggiorna il contenuto, se invece sono file aggiunti vengono aggiunti alla repository locale. Infine tutti i file contenuti nella repository locale vengono sovrascritti localmente, in modo da creare eventuali nuovi e modificare gli altri.
 
 ```Java
 private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
@@ -357,6 +365,8 @@ private void update_repo(String repo_name, Repository remote_repo, HashMap<Strin
 
 #### Check_Conflicts
 
+Il metodo permette di verificare se tutti i conflitti identificati sono stati risolti, andando a scandire la lista dei conflitti e verificando se ne esistono copie locali con la dicitura **REMOTE** o **LOCAL**.
+
 ```Java
 private Boolean check_Conflicts(String repo_name) {
   if (this.conflicts.get(repo_name) != null)
@@ -376,6 +386,19 @@ Infine abbiamo la classe [Launcher](src/main/java/it/isislab/p2p/git/Launcher.ja
 
 ## Deployment
 
+```bash
+docker network create --subnet=172.20.0.0/16 Tempest-Net && docker run -i --net Tempest-Net --ip 172.20.128.0 -e MASTERIP="127.0.0.1" -e ID=0 --name Master-Peer beppetemp/tempest_git
+
+```
+
+```bash
+docker run -i --net Tempest-Net -e MASTERIP="172.20.128.0" -e ID=1 --name Peer-One beppetemp/tempest_git
+
+```
+
 ## Testing
 
+Per quanto riguarda la fase di testing, sono stati realizzati 31 test che testano in modo approfondito i vari metodi implementati. 
+
 ## Problemi noti e future implementazioni
+

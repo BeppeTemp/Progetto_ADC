@@ -9,8 +9,9 @@ RUN mvn package
 
 FROM openjdk:8-jre-alpine
 WORKDIR /root
-ENV MASTERIP=127.0.0.1
+ENV M=127.0.0.1
 ENV ID=0
+ENV WD="files"
 
 COPY --from=mvn /maven-jar/target/TempestGit-jar-with-dependencies.jar /root
 

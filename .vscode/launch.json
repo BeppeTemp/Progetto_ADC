@@ -9,14 +9,14 @@
             "name": "Peer_One_Local",
             "request": "launch",
             "mainClass": "it.isislab.p2p.git.Launcher",
-            "args": "-m 127.0.0.1 -id 0",
+            "args": "-m 127.0.0.1 -id 0 -wd ./Peer_One",
         },
         {
             "type": "java",
             "name": "Peer_Two_Local",
             "request": "launch",
             "mainClass": "it.isislab.p2p.git.Launcher",
-            "args": "-m 127.0.0.1 -id 1",
+            "args": "-m 127.0.0.1 -id 1 -wd ./Peer_Two",
         },
         {
             "type": "java",
