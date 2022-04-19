@@ -8,7 +8,7 @@ mkdir ./Test_Peers/Peer_One_Folder
 
 echo "Creo:" 
 printf "Master Peer on "
-osascript -e 'tell application "Terminal" to do script "echo \"MASTER PEER\n\" && docker run -i -v /:/root --net Tempest-Net --ip 172.20.128.0 -e MASTERIP=\"127.0.0.1\" -e ID=0 --name Master-Peer beppetemp/tempest_git"'
+osascript -e 'tell application "Terminal" to do script "echo \"MASTER PEER\n\" && docker run -i -v /Users/beppetemp/Documents/GitHub/giuseppe-arienzo_adc_2021/Test_Peers/Master_Peer_Folder/:/root/files --net Tempest-Net --ip 172.20.128.0 -e MASTERIP=\"127.0.0.1\" -e ID=0 -e WD=/root/files --name Master-Peer beppetemp/tempest_git"'
 printf "Peer One on"
 osascript -e 'tell application "Terminal" to do script "echo \"PEER ONE\n\" && docker run -i -v /:/root --net Tempest-Net -e MASTERIP=\"172.20.128.0\" -e ID=1 --name Peer-One beppetemp/tempest_git"'
 

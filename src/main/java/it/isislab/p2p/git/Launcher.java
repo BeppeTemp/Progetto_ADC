@@ -20,13 +20,6 @@ import it.isislab.p2p.git.exceptions.RepositoryAlreadyExistException;
 import it.isislab.p2p.git.exceptions.RepositoryNotExistException;
 import it.isislab.p2p.git.implementations.TempestGit;
 
-/**
- * docker build --no-cache -t test . docker run -i -e MASTERIP="127.0.0.1" -e
- * ID=0 test use -i for interactive mode use -e to set the environment variables
- * 
- * @author carminespagnuolo
- *
- */
 public class Launcher {
 
 	@Option(name = "-m", aliases = "--masterip", usage = "IP del master peer", required = true)
@@ -213,7 +206,7 @@ public class Launcher {
 						System.out.println("\nDisconnessione completata ✅");
 						flag = false;
 					} else
-						System.out.println("\nErrore nella disconessione ❌");
+						System.out.println("\nErrore nella disconnessione ❌");
 					break;
 
 				default:
@@ -221,7 +214,7 @@ public class Launcher {
 				}
 			}
 		} catch (CmdLineException clEx) {
-			System.err.println("ERRORE: Impossibile completare il parsinge delle opzioni: " + clEx);
+			System.err.println("ERRORE: Impossibile completare il parsing delle opzioni: " + clEx);
 		}
 	}
 }
