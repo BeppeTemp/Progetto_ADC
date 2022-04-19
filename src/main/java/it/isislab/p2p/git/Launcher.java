@@ -28,6 +28,9 @@ public class Launcher {
 	@Option(name = "-id", aliases = "--identifierpeer", usage = "L'identificativo univoco del peer", required = true)
 	private static int id;
 
+	@Option(name = "-wd", aliases = "--workdirectory", usage = "Path in cui verranno conservate le repository", required = true)
+	private static String work_dir;
+
 	private static void printMenu() {
 		System.out.println("🍳 Menu: ");
 		System.out.println(" 1 - Crea una Repository");
@@ -49,7 +52,7 @@ public class Launcher {
 		try {
 			parser.parseArgument(args);
 			TextIO textIO = TextIoFactory.getTextIO();
-			TempestGit peer = new TempestGit(id, master, Path.of("ciapacapra"));
+			TempestGit peer = new TempestGit(id, master, Path.of(work_dir));
 
 			System.out.println("\nPeer: " + id + " on Master: " + master + " \n");
 

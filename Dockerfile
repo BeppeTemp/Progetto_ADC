@@ -7,7 +7,7 @@ WORKDIR /maven-jar
 COPY --from=git /last-version/giuseppe-arienzo_adc_2021 /maven-jar
 RUN mvn package
 
-FROM openjdk:8-jre-alpine
+FROM openjdk
 WORKDIR /root
 ENV MASTERIP=127.0.0.1
 ENV ID=0
