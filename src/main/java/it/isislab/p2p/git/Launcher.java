@@ -67,7 +67,7 @@ public class Launcher {
 				case 1:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					String dir_init = textIO.newStringInputReader().withDefaultValue("src/test/resources/start_files").read("Directory di inizializzazione:");
-					String dest_dir = textIO.newStringInputReader().withDefaultValue(work_dir + "/" + repo_name).read("Directory di destinazione:");
+					String dest_dir = textIO.newStringInputReader().withDefaultValue(repo_name).read("Directory di destinazione:");
 
 					try {
 						if (peer.createRepository(repo_name, Paths.get(dir_init), Paths.get(dest_dir))) {
@@ -83,7 +83,7 @@ public class Launcher {
 
 				case 2:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
-					String dir_clone = textIO.newStringInputReader().withDefaultValue(work_dir + "/" + repo_name).read("Directory di destinazione:");
+					String dir_clone = textIO.newStringInputReader().withDefaultValue(repo_name).read("Directory di destinazione:");
 
 					try {
 						if (peer.clone(repo_name, Paths.get(dir_clone)))

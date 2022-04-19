@@ -1,3 +1,5 @@
+#docker build --no-cache -t beppetemp/tempest_git - < Dockerfile 
+
 FROM alpine/git as git
 WORKDIR /last-version
 RUN git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021

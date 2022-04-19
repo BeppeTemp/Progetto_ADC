@@ -400,13 +400,12 @@ Infine abbiamo la classe [Launcher](src/main/java/it/isislab/p2p/git/Launcher.ja
 
 ## Deployment
 
-Per semplificare la fase di deployment è stato realizzato uno (script bash)[launch.sh] (Compatibile solo con MacOS ma facilmente adattabile a linux ed eventualmente Windows) che predispone ed elimina, una volta terminato, un semplice ambiente per il testing dell'applicazione.
+Per semplificare la fase di deployment è stato realizzato uno [script bash](launch.sh) (Compatibile solo con MacOS ma facilmente adattabile a Linux ed eventualmente Windows) che predispone ed elimina, una volta terminato, un semplice ambiente per il testing dell'applicazione. Sono inoltre stati predisposti una serie di [file di test](src/test/resources), già inseriti come **defaultValue** di molte richieste di input, in questo modo è possibile testate tutte le funzionalità del programma senza copiare o creare file a mano.
 
 ```bash
 git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021 && sh giuseppe-arienzo_adc_2021/launch.sh
 
 ```
-
 In alternativa è possibile eseguire singolarmente i container:
 
 ### Master Peer
