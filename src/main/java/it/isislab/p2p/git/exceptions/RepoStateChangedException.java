@@ -5,5 +5,4 @@ public class RepoStateChangedException extends Exception {
     public RepoStateChangedException() {
         super();
     }
-
 }

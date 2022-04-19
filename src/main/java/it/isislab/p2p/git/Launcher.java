@@ -54,7 +54,7 @@ public class Launcher {
 			TextIO textIO = TextIoFactory.getTextIO();
 			TempestGit peer = new TempestGit(id, master, Path.of(work_dir));
 
-			System.out.println("\nPeer: " + id + " on Master: " + master + " \n");
+			System.out.println("\nPeer: " + id + " on Master: " + master + " Word dir: " + work_dir + "\n");
 
 			boolean flag = true;
 			while (flag) {
@@ -67,7 +67,7 @@ public class Launcher {
 				case 1:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
 					String dir_init = textIO.newStringInputReader().withDefaultValue("src/test/resources/start_files").read("Directory di inizializzazione:");
-					String dest_dir = textIO.newStringInputReader().withDefaultValue(repo_name).read("Directory di destinazione:");
+					String dest_dir = textIO.newStringInputReader().withDefaultValue(work_dir + "/" + repo_name).read("Directory di destinazione:");
 
 					try {
 						if (peer.createRepository(repo_name, Paths.get(dir_init), Paths.get(dest_dir))) {
@@ -83,7 +83,7 @@ public class Launcher {
 
 				case 2:
 					repo_name = textIO.newStringInputReader().withDefaultValue("Repo_test").read("Nome Repo:");
-					String dir_clone = textIO.newStringInputReader().withDefaultValue("./" + repo_name + "/").read("Directory di destinazione:");
+					String dir_clone = textIO.newStringInputReader().withDefaultValue(work_dir + "/" + repo_name).read("Directory di destinazione:");
 
 					try {
 						if (peer.clone(repo_name, Paths.get(dir_clone)))

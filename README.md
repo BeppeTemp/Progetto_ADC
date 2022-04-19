@@ -95,7 +95,7 @@ public boolean createRepository(String repo_name, Path start_dir, Path repo_dir)
 
 ### Clone
 
-Il metodo permette di clonare una repository esistente sulla rete, tale metodo viene anche utilizzato per effettuare la sottoscrizione ad un topic, anche in questo caso per prima cosa si cerca di ottenere la repository richiesta dalla DHT, se la richiesta ha successo la repository viene scaricata localmente e il peer iscritto, in caso contrario viene lanciata l'eccezione **RepositoryNotExistException**.
+Il metodo permette di clonare una `Repository` esistente sulla rete, tale metodo viene anche utilizzato per effettuare la sottoscrizione ad un topic. Anche in questo caso per prima cosa si cerca di ottenere la `Repository` richiesta dalla **DHT**, se la richiesta ha successo la repository viene scaricata localmente e il peer iscritto, in caso contrario viene lanciata l'eccezione `RepositoryNotExistException`.
 
 ```Java
 @Override
@@ -136,7 +136,7 @@ public boolean clone(String repo_name, Path clone_dir) throws RepositoryNotExist
 
 ### Add_File_To_Repository
 
-Il metodo permette di aggiungere file a una repository, più nel dettaglio viene la directory data viene scansionata alla ricerca di file non contenuti nella repository locale, una volta identificati i tali file vengono inseriti all'interno di una HashMap in modo che possano essere inseriti nel successivo commit, per poi pusharli successivamente all'interno della repository.
+Il metodo permette di aggiungere file a una `Repository`, più nel dettaglio la directory data viene scansionata alla ricerca di **file** non contenuti nella **repository locale**, una volta identificati i tali **file** vengono inseriti all'interno di una `HashMap` in modo che possano essere inseriti nel successivo **commit**, per poi farne il **push** successivamente all'interno della **repository remota**.
 
 ```Java
 @Override
@@ -168,7 +168,7 @@ public Collection<Item> addFilesToRepository(String repo_name, Path add_dir) thr
 
 ### Commit
 
-Il metodo permette di creare un commit, sulla base dei file modificati e dei file aggiunti.
+Il metodo permette di creare un **commit**, sulla base dei file **modificati** e dei file **aggiunti**.
 
 ```Java
 @Override
@@ -197,7 +197,7 @@ public Commit commit(String repo_name, String msg) {
 
 ### Push
 
-Il metodo permette di fare il push di tutti i commit in coda localmente sulla repository, più nel dettaglio una volta ottenuta la repository remota presente sulla DHT (se non esiste si ritorna una **RepositoryNotExistException**) viene controllato se ci sono commit in coda, se non ci sono viene lanciata una **NothingToPushException** in caso contrario l'esecuzione procede e si controlla se la versione della repository locale è diverso da quello della repository remota, se cosi è vuol dire che dall'ultimo pull lo stato di quest'ultima e cambiata, viene quindi lanciata una **RepoStateChangedException** indicando che deve prima essere eseguito un pull, infine nel caso in cui tutte le condizioni sussistano all'operazione di pull si procede invocando il metodo **commit** della repository locale che ne aggiorna lo stato in base a ognuno dei commit in coda, infine la repository locale viene inserita nella DHT sovrascrivendo quella remota.
+Il metodo permette di fare il push di tutti i `Commit` in coda localmente sulla `Repository`, più nel dettaglio una volta ottenuta la **repository remota** presente sulla **DHT** (se non esiste si ritorna una `RepositoryNotExistException`) viene controllato se ci sono `Commit` in coda, se non ci sono viene lanciata una `NothingToPushException` in caso contrario l'esecuzione procede e si controlla se la **versione** della **repository locale** è diversa da quello della **repository remota**, se cosi è vuol dire che dall'ultimo **pull** lo stato di quest'ultima e cambiata, viene quindi lanciata una `RepoStateChangedException` indicando che deve prima essere eseguito un **pull**, infine nel caso in cui tutte le condizioni sussistano all'operazione di **pull** si procede invocando il metodo `commit` della **repository locale** che ne aggiorna lo stato in base a ognuno dei `Commit` in coda, infine la **repository locale** viene inserita nella **DHT** sovrascrivendo quella **remota**.
 
 ```Java
 @Override
@@ -246,9 +246,9 @@ public Boolean push(String repo_name) throws RepoStateChangedException, NothingT
 
 ### Pull
 
-Il metodo permette di fare il pull delle repository remota, più nel dettaglio una volta ottenuta la repository (**RepositoryNotExistException** in caso non esista)remota il metodo verifica se la versione della repository locale è diversa da quella remota, se cosi è vengono identificati tutti i file modificati e viene lanciato il metodo **Find_Conflict**. 
+Il metodo permette di fare il **pull** della **repository remota**, più nel dettaglio una volta ottenuta la **Repository remota** (`RepositoryNotExistException` in caso non esista)  il metodo verifica se la **versione** della **repository locale** è diversa da quella **remota**, se cosi è vengono identificati tutti i file **modificati** e viene lanciato il metodo `Find_Conflict`. 
 
-Se lo stato della repository non è invece cambiato si verifica se eventuali conflitti precedentemente identificati non sono stati risolti, se sono stati risolti si procede creando un commit che contiene i conflitti risolti e si invoca il metodo **Update_Repo**, in caso contrario viene lanciata l'eccezione **ConflictsNotResolvedException**.
+Se lo stato della `Repository` non è invece cambiato si verifica se eventuali **conflitti** precedentemente identificati non sono stati risolti, se sono stati risolti si procede creando un `Commit` che contiene i conflitti risolti e si invoca il metodo `Update_Repo`, in caso contrario viene lanciata l'eccezione `ConflictsNotResolvedException`.
 
 ```Java
 @Override
@@ -297,7 +297,7 @@ public Boolean push(String repo_name) throws RepoStateChangedException, NothingT
 
 #### Find_Conflict
 
-Si occupa di identificare i conflitti, il metodo verifica, per ogni file modificato non già identificato come conflitto, se è stato modificato anche sulla repository remota, se cosi ne vengono create due copie, una identificata con la dicitura **REMOTE** e una con la dicitura **LOCALE**, in modo che l'utente posa scegliere quale mantenere. Infine se è stato identificato anche solo un conflitto viene generata una  **GeneratedConflictException**.
+Si occupa di identificare i conflitti. Il metodo verifica, per ogni **file modificato** non già identificato come conflitto, se è stato modificato anche **sulla repository remota**, se cosi ne vengono create due copie, una identificata con la dicitura **REMOTE** e una con la dicitura **LOCALE**, in modo che l'utente posa scegliere quale mantenere. Infine se è stato identificato anche solo un conflitto viene generata una `GeneratedConflictException`.
 
 ```Java
 private void find_Conflict(String repo_name, Repository remote_repo, HashMap<String, Item> modified, File[] local_files) throws GeneratedConflictException {
@@ -333,7 +333,7 @@ private void find_Conflict(String repo_name, Repository remote_repo, HashMap<Str
 
 #### Update_Repo
 
-Si occupa di aggiornare i file locali in base allo stato della repository locale appena scaricata, più nel dettaglio il metodo scandisce i file presenti sulla repository remota su cui non sono stati identificati conflitti, a questo punto per ogni file, se modificato ne aggiorna il contenuto, se invece sono file aggiunti vengono aggiunti alla repository locale. Infine tutti i file contenuti nella repository locale vengono sovrascritti localmente, in modo da creare eventuali nuovi e modificare gli altri.
+Si occupa di aggiornare i file locali in base allo stato della **repository locale** appena scaricata, più nel dettaglio il metodo scandisce i file presenti sulla **repository remota** su cui non sono stati identificati conflitti, a questo punto per ogni file, se modificato ne aggiorna il contenuto, se invece file sono file da aggiungere vengono aggiunti alla **repository locale**. Infine tutti i file contenuti nella **repository locale** vengono sovrascritti localmente, in modo da crearne eventuali nuovi e modificare gli altri.
 
 ```Java
 private void update_repo(String repo_name, Repository remote_repo, HashMap<String, Item> modified) {
@@ -367,7 +367,7 @@ private void update_repo(String repo_name, Repository remote_repo, HashMap<Strin
 
 #### Check_Conflicts
 
-Il metodo permette di verificare se tutti i conflitti identificati sono stati risolti, andando a scandire la lista dei conflitti e verificando se ne esistono copie locali con la dicitura **REMOTE** o **LOCAL**.
+Il metodo permette di verificare se tutti i **conflitti** identificati sono stati risolti andando a scandire la lista dei conflitti e verificando se ne esistono copie locali con la dicitura **REMOTE** o **LOCAL**.
 
 ```Java
 private Boolean check_Conflicts(String repo_name) {
@@ -388,7 +388,7 @@ Infine abbiamo la classe [Launcher](src/main/java/it/isislab/p2p/git/Launcher.ja
 
 ## Deployment
 
-Per semplificare la fase di deployment è stato realizzato uno (script bash)[launch.sh] che predispone ed elimina, una volta terminato, un semplice ambiente per il testing dell'applicazione.
+Per semplificare la fase di deployment è stato realizzato uno (script bash)[launch.sh] (Compatibile solo con MacOS ma facilmente adattabile a linux ed eventualmente Windows) che predispone ed elimina, una volta terminato, un semplice ambiente per il testing dell'applicazione.
 
 ```bash
 git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021 && sh giuseppe-arienzo_adc_2021/launch.sh
@@ -396,14 +396,13 @@ git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021 && sh giuseppe-
 ```
 In alternativa è possibile eseguire singolarmente i container:
 
-Master Peer:
+### Master Peer
 
 ```bash
 docker network create --subnet=172.20.0.0/16 Tempest-Net && docker run -i --net Tempest-Net --ip 172.20.128.0 -e MASTERIP="127.0.0.1" -e ID=0 --name Master-Peer beppetemp/tempest_git
 
 ```
-
-Generic Peer:
+### Generic Peer
 
 ```bash
 docker run -i --net Tempest-Net -e MASTERIP="172.20.128.0" -e ID=1 --name Peer-One beppetemp/tempest_git
@@ -411,21 +410,21 @@ docker run -i --net Tempest-Net -e MASTERIP="172.20.128.0" -e ID=1 --name Peer-O
 ```
 Nella generazione di numerosi **Generic Peer** è necessario iterare il parametro ID.
 
-Inoltre nel caso si desideri collegarsi a uno dei container creati, eseguire il seguente comando:
+Inoltre nel caso si desideri collegarsi a uno dei container creati è possibile eseguire il seguente comando:
 ```bash
 docker exec -t -i ${container_name} /bin/bash
 ```
 
 ## Testing
 
-Per quanto riguarda la fase di testing, sono stati realizzati 31 test con lo scopo di testare in modo approfondito i vari metodi implementati. Inoltre l'introduzione di un terzo parametro da linea di comando riguardante la directory di lavoro di ogni peer, permette di eseguire con semplicità più peer sulla stessa macchina (impostando appunto directory di lavoro differenti). 
+Per quanto riguarda la fase di **testing**, sono stati realizzati **31 test** con lo scopo di testare in modo approfondito i vari metodi implementati. Inoltre l'introduzione di un terzo parametro da linea di comando riguardante la `work_dir` di ogni `Peer`, permette di eseguire con semplicità più `Peer` sulla stessa macchina (impostando appunto `work_dir` differenti). 
 
-Inoltre è stato fornito uno script che permette di realizzare in pochi istanti una piccola rete, tramite l'utilizzo di container docker, tale script permette anche di fare il binding delle directory di lavoro dei container in modo da visualizzare comodamente cosa accade all'interno di essi.
+Inoltre è stato fornito uno **script** che permette di realizzare in pochi istanti una piccola rete, tramite l'utilizzo di container docker, tale script permette anche di fare il **binding** delle directory di lavoro dei container in modo da visualizzare comodamente cosa accade all'interno di essi.
 
-## Problemi noti e future implementazioni
+## Problemi noti e considerazioni finali
 
-L'applicazione è stata realizzata cercando di realizzare un protocollo che offrisse le stesse funzionalità del protocollo GIT, pertanto ogni Peer è virtualmente in grado di gestire più di una repository contemporaneamente, anche se questa funzionalità non è stata testata a dovere.
+L'applicazione è stata realizzata cercando di realizzare un protocollo che offrisse le stesse funzionalità del protocollo **GIT**, pertanto ogni `Peer` è virtualmente in grado di gestire più di una `Repository` contemporaneamente, anche se questa funzionalità non è stata testata in modo approfondito.
 
-### Problemi noti:
+### Problemi noti
 
 * Il metodo add non mostra i file aggiunti se prima non viene eseguito un pull (anche nel peer che li aggiunge).

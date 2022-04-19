@@ -48,7 +48,6 @@ public class TempestGit implements GitProtocol {
 	private HashMap<String, ArrayList<String>> conflicts;
 
 	public TempestGit(int id, String master_peer, Path work_dir) throws Exception {
-		System.out.println("work_di: " + work_dir);
 		this.work_dir = work_dir;
 		this.local_repos = new HashMap<String, Repository>();
 		this.local_added = new HashMap<String, Item>();
@@ -189,7 +188,6 @@ public class TempestGit implements GitProtocol {
 	@Override
 	public Commit commit(String repo_name, String msg) {
 		try {
-			System.out.println("bho: " + this.my_repos.get(repo_name).toString());
 			File[] local_files = this.my_repos.get(repo_name).toFile().listFiles();
 
 			HashMap<String, Item> modified = new HashMap<String, Item>();
@@ -395,7 +393,7 @@ public class TempestGit implements GitProtocol {
 		return true;
 	}
 
-	// Rimuove la repository dalla DHT e localemente solo al nodo in disconnessione
+	// Rimuove la repository dalla DHT e localmente solo al nodo in disconnessione
 	public boolean removeRepo(String repo_name) {
 		try {
 			FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();

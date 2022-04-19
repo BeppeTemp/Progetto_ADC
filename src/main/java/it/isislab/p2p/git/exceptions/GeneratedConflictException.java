@@ -4,5 +4,4 @@ public class GeneratedConflictException extends Exception {
     public GeneratedConflictException() {
         super();
     }
-
 }

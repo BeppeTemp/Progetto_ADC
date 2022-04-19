@@ -39,11 +39,11 @@ public interface GitProtocol {
 
 	/**
 	 * Crea una repository a partire da una directory aggiungendo tutti i file
-	 * presenti, dopodichè clona la nuova repository nel path di destinazione.
+	 * presenti, dopodiché clona la nuova repository nel path di destinazione.
 	 * 
 	 * @param repo_name una {@code String}, contenente il nome della repository.
 	 * @param start_dir un {@code Path} contenente la posizione della directory da
-	 *                  cui verra creata la repository.
+	 *                  cui verrà creata la repository.
 	 * @param repo_dir  un {@code Path} dove verrà clonata la repository appena
 	 *                  creata.
 	 * @return {@code true} se creata correttamente, {@code false} negli altri casi.
@@ -119,11 +119,11 @@ public interface GitProtocol {
 	public Boolean pull(String repo_name) throws RepositoryNotExistException, GeneratedConflictException, ConflictsNotResolvedException;
 
 	/**
-	 * Disconette il peer della DHT, eliminando tutte le repository e i file locali
+	 * Disconnette il peer della DHT, eliminando tutte le repository e i file locali
 	 * ad esse associati.
 	 * 
 	 * @param repo_name una {@code String}, contenente il nome della repository.
-	 * @return {@code true} se il peeer viene disconesso correttamente, {@code false} negli
+	 * @return {@code true} se il peer viene disconnesso correttamente, {@code false} negli
 	 *         altri casi.
 	 */
 	public boolean leaveNetwork();
