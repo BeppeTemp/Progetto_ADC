@@ -26,39 +26,40 @@ Design and develop the **Git protocol**, distributed versioning control on a **P
 - JUnit
 - Docker
 - HomeBrew
+- Bash Script
 
 ## Implementazione
 
 Le funzionalità offerte dal protocollo sono quelle definite all'interno delle [GitProtocol Java API](https://github.com/spagnuolocarmine/distributedsystems-unisa/blob/master/homework/GitProtocol.java), opportunamente modificate in base alle necessità, sono inoltre state aggiunte ulteriori funzionalità come:
 
-- La possibilità di **clonare** una repository;
-- La possibilità di visualizzare lo **stato** di una repository, sia localmente che sulla rete.
-- La possibilità di visualizzare tutti i **commit** in coda e pronti al push.
+- La possibilità di **clonare** una `Repository`;
+- La possibilità di visualizzare lo **stato** di una `Repository`, sia **localmente** che sulla **rete**.
+- La possibilità di visualizzare tutti i **commit** in coda e pronti al **push**.
 
 L'implementazione si basa su quattro classi principali:
 
-- **Commit:** classe serializzabile che viene istanziata al momento della creazione di un commit e ne contiene messaggio e lista dei file (Item) aggiunti o modificati.
-- **Generator:** implementa un metodo statico utilizzato per la generazione del **MD5** di un file a partire dal suo contenuto, tale MD5 viene utilizzato per alleggerire il processo di confronto dei file, limitandolo al confronto di due stringe.
-- **Item:** classe serializzabile che rappresenta i file che vengono mantenuti all'interno della repository ne contiene infatti: nome, checksum e array di byte.
-- **Repository:** classe serializzabile che rappresenta una repository mantenuta sulla rete, contiene un hashmap di: item, commit e peer (iscritti alla rete) nonché un identificativo che ne rappresenta la versione e un altro che ne rappresenta il proprietario. La classe implementa anche i seguenti metodi:
-  - **Commit:** il quale dato in input un oggetto commit sincronizza lo stato della repository in base ad esso.
-  - **isModified:** che permette, dato un file o un item, in ingresso di verificare a parità di nome, se il contenuto di quello presente nella repository è diverso.
-  - **contains:** che permette di verificare se un determinato file esiste già nella repository.
+- `Commit`: classe serializzabile che viene istanziata al momento della creazione di un **commit** e ne contiene messaggio e lista dei file (`Item`) aggiunti o modificati.
+- `Generator`: implementa un metodo statico utilizzato per la generazione della **Checksum** (MD5) di un file a partire dal suo contenuto, tale **Checksum** viene utilizzato per alleggerire il processo di confronto dei file, limitandolo al confronto di due stringe.
+- `Item`: classe serializzabile che rappresenta i file che vengono mantenuti all'interno della repository ne contiene infatti: **nome**, **checksum** e **array di byte**.
+- `Repository`: classe serializzabile che rappresenta una **repository** mantenuta sulla rete, contiene un `hashmap` di: `Item`, `Commit` e `Peer` (iscritti alla rete) nonché un identificativo che ne rappresenta la versione e un altro che ne rappresenta il proprietario. La classe implementa anche i seguenti metodi:
+  - **Commit:** il quale dato in input un oggetto `Commit` aggiorna lo stato della `Repository` in base ad esso.
+  - **isModified:** che permette, dato un `File` o un `Item`, in input di verificare a parità di nome, se il contenuto di quello presente nella repository è diverso.
+  - **contains:** che permette di verificare se un determinato `File` esiste già nella `Repository`.
 
-Sono inoltre state definite una serie di [eccezioni](src/main/java/it/isislab/p2p/git/exceptions) che permettono la gestione di tutta una serie di errori che possono verificarsi durante l'esecuzione:
+Sono inoltre state definite una serie di [Exception](src/main/java/it/isislab/p2p/git/exceptions) che permettono la gestione di tutta una serie di errori che possono verificarsi durante l'esecuzione:
 
-- **RepositoryNotExistException:** generata nel caso in cui si stia cercando di interagire con una repository inesistente.
-- **RepositoryAlreadyExistException:** generata nel caso in cui si stia cercando di creare una repository che già esiste.
-- **NothingToPushException** generata nel caso in cui si stia cercando di fare il push su una repository senza prima aver creato nessun commit.
-- **RepoStateChangedException:** generata nel caso in cui lo stato della repository su cui si sta cercando di fare il push è cambiato ed è quindi necessario effettuare prima un pull.
-- **GeneratedConflictException:** generata durante la fase di pull, nel caso in cui un file modificato localmente è stato modificato anche sulla repository remota.
-- **ConflictsNotResolvedException:** generato durante la fase di pull, nel caso in cui non tutti i conflitti identificati siano stati risolti.
+- `RepositoryNotExistException`: generata nel caso in cui si stia cercando di interagire con una `Repository` inesistente.
+- `RepositoryAlreadyExistException`: generata nel caso in cui si stia cercando di creare una `Repository` che già esiste.
+- `NothingToPushException`: generata nel caso in cui si stia cercando di fare il **push** su una `Repository` senza prima aver creato nessun **commit**.
+- `RepoStateChangedException`: generata nel caso in cui lo **stato** della `Repository` su cui si sta cercando di fare il **push** è cambiato ed è quindi necessario effettuare prima un **pull**.
+- `GeneratedConflictException`: generata durante la fase di **pull**, nel caso in cui un file modificato localmente è stato modificato anche sulla `Repository` remota.
+- `ConflictsNotResolvedException`: generato durante la fase di **pull**, nel caso in cui non tutti i conflitti identificati siano stati risolti.
 
-Le **API** aggiornate sono presenti [qui](src/main/java/it/isislab/p2p/git/interfaces/GitProtocol.java). E sono implementate all'interno del seguente [file](src/main/java/it/isislab/p2p/git/implementations/TempestGit.java) più nel dettaglio i principali metodi implementati sono:
+Le **API** aggiornate sono presenti nel file [GitProtocol](src/main/java/it/isislab/p2p/git/interfaces/GitProtocol.java). E sono implementate all'interno del file [TempestGit](src/main/java/it/isislab/p2p/git/implementations/TempestGit.java), più nel dettaglio i principali metodi implementati sono:
 
 ### Create_Repository
 
-Che si occupa della creazione di una nuova repository. Il metodo prima tenta di recuperare la repository che si sta cercando di creare dalla rete, se questa esiste viene lanciata una **RepositoryAlreadyExistException** nel caso contrario invece si procede alla creazione di un nuovo oggetto repository e all'iscrizione al topic del peer creante, infine la repository viene caricata sulla DHT e lanciato il metodo clone.
+Che si occupa della creazione di una nuova `Repository`. Il metodo prima tenta di recuperare la `Repository` che si sta cercando di creare dalla rete, se questa esiste viene lanciata una `RepositoryAlreadyExistException` nel caso contrario invece si procede alla creazione di un nuovo oggetto `Repository` e all'iscrizione al topic del `Peer` creante, infine la `Repository` viene caricata sulla **DHT** e lanciato il metodo **clone**.
 
 ```Java
 @Override
@@ -99,6 +100,7 @@ Il metodo permette di clonare una repository esistente sulla rete, tale metodo v
 ```Java
 @Override
 public boolean clone(String repo_name, Path clone_dir) throws RepositoryNotExistException {
+  clone_dir = Path.of(this.work_dir.toString() + "/" + clone_dir.toString());
 
   FutureGet futureGet = dht.get(Number160.createHash(repo_name)).start().awaitUninterruptibly();
 
@@ -386,19 +388,44 @@ Infine abbiamo la classe [Launcher](src/main/java/it/isislab/p2p/git/Launcher.ja
 
 ## Deployment
 
+Per semplificare la fase di deployment è stato realizzato uno (script bash)[launch.sh] che predispone ed elimina, una volta terminato, un semplice ambiente per il testing dell'applicazione.
+
+```bash
+git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021 && sh giuseppe-arienzo_adc_2021/launch.sh
+
+```
+In alternativa è possibile eseguire singolarmente i container:
+
+Master Peer:
+
 ```bash
 docker network create --subnet=172.20.0.0/16 Tempest-Net && docker run -i --net Tempest-Net --ip 172.20.128.0 -e MASTERIP="127.0.0.1" -e ID=0 --name Master-Peer beppetemp/tempest_git
 
 ```
 
+Generic Peer:
+
 ```bash
 docker run -i --net Tempest-Net -e MASTERIP="172.20.128.0" -e ID=1 --name Peer-One beppetemp/tempest_git
 
 ```
+Nella generazione di numerosi **Generic Peer** è necessario iterare il parametro ID.
+
+Inoltre nel caso si desideri collegarsi a uno dei container creati, eseguire il seguente comando:
+```bash
+docker exec -t -i ${container_name} /bin/bash
+```
 
 ## Testing
 
-Per quanto riguarda la fase di testing, sono stati realizzati 31 test che testano in modo approfondito i vari metodi implementati. 
+Per quanto riguarda la fase di testing, sono stati realizzati 31 test con lo scopo di testare in modo approfondito i vari metodi implementati. Inoltre l'introduzione di un terzo parametro da linea di comando riguardante la directory di lavoro di ogni peer, permette di eseguire con semplicità più peer sulla stessa macchina (impostando appunto directory di lavoro differenti). 
+
+Inoltre è stato fornito uno script che permette di realizzare in pochi istanti una piccola rete, tramite l'utilizzo di container docker, tale script permette anche di fare il binding delle directory di lavoro dei container in modo da visualizzare comodamente cosa accade all'interno di essi.
 
 ## Problemi noti e future implementazioni
 
+L'applicazione è stata realizzata cercando di realizzare un protocollo che offrisse le stesse funzionalità del protocollo GIT, pertanto ogni Peer è virtualmente in grado di gestire più di una repository contemporaneamente, anche se questa funzionalità non è stata testata a dovere.
+
+### Problemi noti:
+
+* Il metodo add non mostra i file aggiunti se prima non viene eseguito un pull (anche nel peer che li aggiunge).
