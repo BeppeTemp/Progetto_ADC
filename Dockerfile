@@ -11,7 +11,10 @@ FROM openjdk
 WORKDIR /root
 ENV MASTERIP=127.0.0.1
 ENV ID=0
+ENV WD=/root/files
 COPY --from=mvn /maven-jar/target/TempestGit-jar-with-dependencies.jar /root
+COPY --from=mvn /maven-jar /root
+
 RUN mkdir /root/files
 
-CMD /usr/bin/java -jar TempestGit-jar-with-dependencies.jar -m $MASTERIP -id $ID
+CMD /usr/bin/java -jar TempestGit-jar-with-dependencies.jar -m $MASTERIP -id $ID -wd $WD
