@@ -1,6 +1,6 @@
 # TempestGIT
 
-![Logo](logo.png)
+<img src="logo.png" alt="logo"/>
 
 |            Studente             |   Progetto   |
 | :-----------------------------: | :----------: |
@@ -248,7 +248,7 @@ public Boolean push(String repo_name) throws RepoStateChangedException, NothingT
 
 ### Pull
 
-Il metodo permette di fare il **pull** della **repository remota**, più nel dettaglio una volta ottenuta la **Repository remota** (`RepositoryNotExistException` in caso non esista)  il metodo verifica se la **versione** della **repository locale** è diversa da quella **remota**, se cosi è vengono identificati tutti i file **modificati** e viene lanciato il metodo `Find_Conflict`. 
+Il metodo permette di fare il **pull** della **repository remota**, più nel dettaglio una volta ottenuta la **Repository remota** (`RepositoryNotExistException` in caso non esista) il metodo verifica se la **versione** della **repository locale** è diversa da quella **remota**, se cosi è vengono identificati tutti i file **modificati** e viene lanciato il metodo `Find_Conflict`.
 
 Se lo stato della `Repository` non è invece cambiato si verifica se eventuali **conflitti** precedentemente identificati non sono stati risolti, se sono stati risolti si procede creando un `Commit` che contiene i conflitti risolti e si invoca il metodo `Update_Repo`, in caso contrario viene lanciata l'eccezione `ConflictsNotResolvedException`.
 
@@ -396,6 +396,7 @@ Per semplificare la fase di deployment è stato realizzato uno (script bash)[lau
 git clone https://github.com/BeppeTemp/giuseppe-arienzo_adc_2021 && sh giuseppe-arienzo_adc_2021/launch.sh
 
 ```
+
 In alternativa è possibile eseguire singolarmente i container:
 
 ### Master Peer
@@ -404,22 +405,25 @@ In alternativa è possibile eseguire singolarmente i container:
 docker network create --subnet=172.20.0.0/16 Tempest-Net && docker run -i --net Tempest-Net --ip 172.20.128.0 -e MASTERIP="127.0.0.1" -e ID=0 --name Master-Peer beppetemp/tempest_git
 
 ```
+
 ### Generic Peer
 
 ```bash
 docker run -i --net Tempest-Net -e MASTERIP="172.20.128.0" -e ID=1 --name Peer-One beppetemp/tempest_git
 
 ```
+
 Nella generazione di numerosi **Generic Peer** è necessario iterare il parametro ID.
 
 Inoltre nel caso si desideri collegarsi a uno dei container creati è possibile eseguire il seguente comando:
+
 ```bash
 docker exec -t -i ${container_name} /bin/bash
 ```
 
 ## Testing
 
-Per quanto riguarda la fase di **testing**, sono stati realizzati **31 test** con lo scopo di testare in modo approfondito i vari metodi implementati. Inoltre l'introduzione di un terzo parametro da linea di comando riguardante la `work_dir` di ogni `Peer`, permette di eseguire con semplicità più `Peer` sulla stessa macchina (impostando appunto `work_dir` differenti). 
+Per quanto riguarda la fase di **testing**, sono stati realizzati **31 test** con lo scopo di testare in modo approfondito i vari metodi implementati. Inoltre l'introduzione di un terzo parametro da linea di comando riguardante la `work_dir` di ogni `Peer`, permette di eseguire con semplicità più `Peer` sulla stessa macchina (impostando appunto `work_dir` differenti).
 
 Inoltre è stato fornito uno **script** che permette di realizzare in pochi istanti una piccola rete, tramite l'utilizzo di container docker, tale script permette anche di fare il **binding** delle directory di lavoro dei container in modo da visualizzare comodamente cosa accade all'interno di essi.
 
@@ -429,4 +433,4 @@ L'applicazione è stata realizzata cercando di realizzare un protocollo che offr
 
 ### Problemi noti
 
-* Il metodo add non mostra i file aggiunti se prima non viene eseguito un pull (anche nel peer che li aggiunge).
+- Il metodo add non mostra i file aggiunti se prima non viene eseguito un pull (anche nel peer che li aggiunge).
